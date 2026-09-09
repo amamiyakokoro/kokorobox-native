@@ -1,9 +1,10 @@
 [package]
-name = "sparkle-native-napi"
-version = "0.1.2"
+name = "kokorobox-native-napi"
+version = "0.1.0"
 edition = "2024"
 license = "GPL-3.0-only"
-description = "Sparkle native bridge bindings"
+description = "KokoroBox native bridge bindings"
+repository = "https://github.com/amamiyakokoro/kokorobox-native"
 
 [lib]
 crate-type = ["cdylib"]
@@ -11,7 +12,7 @@ crate-type = ["cdylib"]
 [dependencies]
 napi = { version = "3", features = ["napi4"] }
 napi-derive = "3"
-sparkle-native = { path = ".." }
+kokorobox-native = { path = ".." }
 
 [build-dependencies]
 napi-build = "2"

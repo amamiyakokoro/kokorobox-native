@@ -1,18 +1,18 @@
 {
-  "name": "@uruhalushia/sparkle-native",
-  "version": "0.1.2",
-  "description": "Sparkle native bridge",
+  "name": "kokorobox-native",
+  "version": "0.1.0",
+  "description": "KokoroBox native bridge",
   "type": "module",
   "main": "index.js",
   "types": "index.d.ts",
   "packageManager": "pnpm@11.3.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/UruhaLushia/sparkle-native.git"
+    "url": "git+https://github.com/amamiyakokoro/kokorobox-native.git"
   },
-  "homepage": "https://github.com/UruhaLushia/sparkle-native",
+  "homepage": "https://github.com/amamiyakokoro/kokorobox-native",
   "bugs": {
-    "url": "https://github.com/UruhaLushia/sparkle-native/issues"
+    "url": "https://github.com/amamiyakokoro/kokorobox-native/issues"
   },
   "license": "GPL-3.0-only",
   "files": [
@@ -21,7 +21,7 @@
     "README.md"
   ],
   "napi": {
-    "binaryName": "sparkle-native",
+    "binaryName": "kokorobox-native",
     "targets": [
       "x86_64-pc-windows-msvc",
       "i686-pc-windows-msvc",

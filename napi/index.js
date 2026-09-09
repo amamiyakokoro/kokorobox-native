@@ -12,8 +12,8 @@ const __dirname = new URL(".", import.meta.url).pathname.replace(
   "$1",
 );
 
-const packageName = "@uruhalushia/sparkle-native";
-const binaryName = "sparkle-native";
+const packageName = "kokorobox-native";
+const binaryName = "kokorobox-native";
 const loadErrors = [];
 
 function requireLocal(tuple) {
@@ -73,7 +73,7 @@ function requireNative() {
 const nativeBinding = requireNative();
 
 if (!nativeBinding) {
-  const error = new Error("Failed to load sparkle-native binding");
+  const error = new Error("Failed to load kokorobox-native binding");
   error.cause = loadErrors;
   throw error;
 }

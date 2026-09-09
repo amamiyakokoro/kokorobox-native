@@ -10,14 +10,15 @@ strip = true
 panic = "abort"
 
 [package]
-name = "sparkle-native"
-version = "0.1.2"
+name = "kokorobox-native"
+version = "0.1.0"
 edition = "2024"
 license = "GPL-3.0-only"
-description = "Sparkle native bridge"
+description = "KokoroBox native bridge"
+repository = "https://github.com/amamiyakokoro/kokorobox-native"
 
 [lib]
-name = "sparkle_native"
+name = "kokorobox_native"
 path = "src/lib.rs"
 
 [dependencies]

@@ -50,14 +50,14 @@ pub struct RuleStringResult {
 
 #[napi]
 pub fn file_to_str(path: String, options: Option<RuleConvertOptions>) -> Result<RuleStringResult> {
-    sparkle_native::rule_file_to_string(path, to_core_options(options))
+    kokorobox_native::rule_file_to_string(path, to_core_options(options))
         .map(to_js_result)
         .map_err(map_err)
 }
 
-fn to_core_options(options: Option<RuleConvertOptions>) -> sparkle_native::RuleConvertOptions {
+fn to_core_options(options: Option<RuleConvertOptions>) -> kokorobox_native::RuleConvertOptions {
     let options = options.unwrap_or_default();
-    sparkle_native::RuleConvertOptions {
+    kokorobox_native::RuleConvertOptions {
         input_target: options.input_target,
         input_format: options.input_format,
         input_behavior: options.input_behavior,
@@ -67,7 +67,7 @@ fn to_core_options(options: Option<RuleConvertOptions>) -> sparkle_native::RuleC
     }
 }
 
-fn to_js_result(result: sparkle_native::RuleStringResult) -> RuleStringResult {
+fn to_js_result(result: kokorobox_native::RuleStringResult) -> RuleStringResult {
     RuleStringResult {
         kind: result.kind,
         outputs: result.outputs,
