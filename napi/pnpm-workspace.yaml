@@ -1,0 +1,9 @@
+minimumReleaseAgeExclude:
+  - kokorobox-native-darwin-arm64@0.1.0
+  - kokorobox-native-darwin-x64@0.1.0
+  - kokorobox-native-linux-arm64-gnu@0.1.0
+  - kokorobox-native-linux-loong64-gnu@0.1.0
+  - kokorobox-native-linux-x64-gnu@0.1.0
+  - kokorobox-native-win32-arm64-msvc@0.1.0
+  - kokorobox-native-win32-ia32-msvc@0.1.0
+  - kokorobox-native-win32-x64-msvc@0.1.0
