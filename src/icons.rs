@@ -61,7 +61,10 @@ fn macos_bundle_icon_data_url(bundle_path: &Path) -> Option<String> {
     } else {
         format!("{icon_name}.icns")
     };
-    let resource = bundle_path.join("Contents").join("Resources").join(resource_name);
+    let resource = bundle_path
+        .join("Contents")
+        .join("Resources")
+        .join(resource_name);
     if !resource.is_file() {
         return None;
     }

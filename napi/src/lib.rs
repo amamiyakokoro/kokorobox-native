@@ -1,7 +1,8 @@
 #![deny(clippy::all)]
 
-mod error;
 mod application;
+mod error;
 mod icons;
+mod platform;
 mod rules;
 mod windows;

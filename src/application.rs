@@ -101,7 +101,11 @@ fn macos_signing_identifier(path: &Path) -> Result<String> {
         .map(str::trim)
         .filter(|identifier| !identifier.is_empty() && !identifier.contains(['\r', '\n']))
         .map(str::to_string)
-        .ok_or_else(|| anyhow::anyhow!("APPLICATION_IDENTIFIER_UNAVAILABLE: selected application has no signing identifier"))
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "APPLICATION_IDENTIFIER_UNAVAILABLE: selected application has no signing identifier"
+            )
+        })
 }
 
 #[cfg(target_os = "macos")]
@@ -111,18 +115,17 @@ fn inspect_macos_application(path: PathBuf) -> Result<ApplicationInfo> {
         && path
             .extension()
             .is_some_and(|extension| extension.eq_ignore_ascii_case("app"));
-    let is_executable = metadata.is_file()
-        && {
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::PermissionsExt;
-                metadata.permissions().mode() & 0o111 != 0
-            }
-            #[cfg(not(unix))]
-            {
-                false
-            }
-        };
+    let is_executable = metadata.is_file() && {
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            metadata.permissions().mode() & 0o111 != 0
+        }
+        #[cfg(not(unix))]
+        {
+            false
+        }
+    };
     if !is_bundle && !is_executable {
         bail!("INVALID_APPLICATION: select a signed macOS application or executable")
     }
@@ -163,7 +166,7 @@ pub fn inspect_application(path: impl AsRef<Path>) -> Result<ApplicationInfo> {
     return inspect_macos_application(path);
     #[cfg(target_os = "linux")]
     return inspect_linux_application(path);
-    #[allow(unreachable_code)]
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
     bail!("UNSUPPORTED_PLATFORM: application inspection is not supported on this platform")
 }
 
@@ -197,7 +200,8 @@ pub fn scan_windows_applications(
             Ok(entries) => entries,
             Err(error) => {
                 if applications.is_empty() && pending.is_empty() {
-                    return Err(error).context("APPLICATION_SCAN_FAILED: unable to read selected directory");
+                    return Err(error)
+                        .context("APPLICATION_SCAN_FAILED: unable to read selected directory");
                 }
                 unreadable_directory_count += 1;
                 continue;

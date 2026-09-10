@@ -10,6 +10,8 @@ pub struct JsNativeCapabilities {
     pub windows_account: bool,
     pub windows_elevation: bool,
     pub windows_firewall: bool,
+    pub launch_at_login: bool,
+    pub network_context: bool,
 }
 
 #[napi(object)]
@@ -49,6 +51,8 @@ pub fn get_native_capabilities() -> JsNativeCapabilities {
         windows_account: capabilities.windows_account,
         windows_elevation: capabilities.windows_elevation,
         windows_firewall: capabilities.windows_firewall,
+        launch_at_login: capabilities.launch_at_login,
+        network_context: capabilities.network_context,
     }
 }
 
