@@ -6,8 +6,9 @@ provide in JavaScript alone. It is published as a small JavaScript loader plus
 prebuilt, platform-specific native packages.
 
 It provides file and application icon helpers, application inspection, rule-set
-conversion, launch-at-login and network-context helpers, and Windows account,
-elevation, Firewall, and application-scanning integrations.
+conversion, launch-at-login and network-context helpers, constrained Unix core
+permissions, and Windows account, elevation, Firewall, and
+application-scanning integrations.
 
 ## Repository structure
 
@@ -19,6 +20,7 @@ elevation, Firewall, and application-scanning integrations.
 │   ├── application.rs      # Application inspection and Windows scanning
 │   ├── icons.rs            # Icon data URLs and display-name lookup
 │   ├── platform.rs         # Login-item and network-context implementations
+│   ├── privileges.rs       # Constrained Mihomo core-file privileges
 │   ├── rules.rs            # Rule-file conversion facade
 │   ├── windows/            # Windows-only token, elevation, and Firewall code
 │   └── non_windows.rs      # Explicit unsupported-platform Windows stubs
@@ -50,12 +52,18 @@ limits its result count, and counts nested directories it cannot read.
 
 Launch-at-login uses Task Scheduler on Windows, Login Items on macOS, and XDG
 Autostart on Linux. `getNetworkContext()` is best-effort: unavailable interface,
-DNS, or Wi-Fi fields are omitted rather than inferred.
+network-service, DNS, or Wi-Fi fields are omitted rather than inferred.
+
+Unix core elevation is deliberately narrow. `setCorePrivileges()` accepts only
+canonical, existing, executable files named `mihomo` or `mihomo-alpha`, rejects
+more than eight paths, and only changes ownership and the set-user-ID bit. It
+does not expose arbitrary privileged command execution.
 
 ## JavaScript API
 
-The published package is documented in [`napi/README.md`](napi/README.md) and
-its exact TypeScript contract is in [`napi/index.d.ts`](napi/index.d.ts).
+The published package is documented in [`napi/README.md`](napi/README.md), its
+exact TypeScript contract is in [`napi/index.d.ts`](napi/index.d.ts), and the
+platform/security contract is in [`docs/platform-services.md`](docs/platform-services.md).
 
 ```ts
 import {

@@ -39,6 +39,7 @@ The full TypeScript declarations are shipped in
 | Applications | `inspectApplication`, `scanWindowsApplications` |
 | Rules | `fileToStr` |
 | Platform | `getLaunchAtLogin`, `setLaunchAtLogin`, `getNetworkContext` |
+| Core permissions | `getCorePrivilegeStatus`, `setCorePrivileges` |
 | Windows | `getCurrentUserSid`, `isRunningAsAdmin`, `runElevated`, `setupFirewallRules` |
 
 `inspectApplication` validates the input for the current platform and resolves
@@ -57,6 +58,12 @@ and an absolute executable path. It returns the selected backend: Windows Task
 Scheduler, macOS Login Items, or Linux XDG Autostart. Network context is
 best-effort, so optional fields such as the default interface and SSID may be
 absent.
+
+Core-file privilege APIs are supported on macOS and Linux. They accept only
+canonical, existing executables named `mihomo` or `mihomo-alpha`; callers cannot
+use them as a general privileged-command interface. See the repository's
+[platform-services contract](../docs/platform-services.md) for validation and
+platform behavior.
 
 ## Platform behavior
 
