@@ -3,6 +3,7 @@
 mod application;
 mod icons;
 mod platform;
+mod privileges;
 mod rules;
 
 #[cfg(not(target_os = "windows"))]
@@ -20,6 +21,7 @@ pub use platform::{
     LaunchAtLoginOptions, LaunchAtLoginStatus, NetworkContext, get_launch_at_login,
     get_network_context, set_launch_at_login,
 };
+pub use privileges::{CorePrivilegeStatus, get_core_privilege_status, set_core_privileges};
 pub use rules::{
     RuleConvertOptions, RuleOutputInfo, RuleSkippedItem, RuleStringResult, rule_file_to_string,
 };
@@ -41,6 +43,7 @@ pub struct NativeCapabilities {
     pub windows_firewall: bool,
     pub launch_at_login: bool,
     pub network_context: bool,
+    pub core_file_privileges: bool,
 }
 
 pub fn native_capabilities() -> NativeCapabilities {
@@ -60,5 +63,6 @@ pub fn native_capabilities() -> NativeCapabilities {
             target_os = "macos",
             target_os = "linux"
         )),
+        core_file_privileges: cfg!(any(target_os = "macos", target_os = "linux")),
     }
 }

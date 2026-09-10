@@ -24,6 +24,7 @@ pub struct LaunchAtLoginStatus {
 #[derive(Debug, Clone)]
 pub struct NetworkContext {
     pub default_interface: Option<String>,
+    pub default_service: Option<String>,
     pub dns_servers: Vec<String>,
     pub ssid: Option<String>,
 }
@@ -71,11 +72,7 @@ pub fn set_launch_at_login(
 }
 
 pub fn get_network_context() -> Result<NetworkContext> {
-    Ok(NetworkContext {
-        default_interface: platform_default_interface(),
-        dns_servers: platform_dns_servers(),
-        ssid: platform_ssid(),
-    })
+    Ok(platform_network_context())
 }
 
 fn command_output(program: &str, arguments: &[&str]) -> Option<String> {
@@ -339,8 +336,8 @@ fn platform_default_interface() -> Option<String> {
 }
 
 #[cfg(target_os = "linux")]
-fn platform_dns_servers() -> Vec<String> {
-    fs::read_to_string("/etc/resolv.conf")
+fn resolv_conf_dns_servers() -> Vec<String> {
+    let mut servers = fs::read_to_string("/etc/resolv.conf")
         .map(|content| {
             content
                 .lines()
@@ -352,28 +349,85 @@ fn platform_dns_servers() -> Vec<String> {
                 })
                 .collect()
         })
-        .unwrap_or_default()
+        .unwrap_or_default();
+    servers.sort();
+    servers.dedup();
+    servers
 }
 
 #[cfg(target_os = "linux")]
-fn platform_ssid() -> Option<String> {
+fn linux_dns_servers(interface: Option<&str>) -> Vec<String> {
+    let resolved = interface
+        .and_then(|interface| command_output("resolvectl", &["dns", interface]))
+        .map(|output| {
+            output
+                .split_once(':')
+                .map(|(_, servers)| servers)
+                .unwrap_or_default()
+                .split_whitespace()
+                .filter(|server| server.parse::<std::net::IpAddr>().is_ok())
+                .map(ToOwned::to_owned)
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    if resolved.is_empty() {
+        resolv_conf_dns_servers()
+    } else {
+        resolved
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn linux_ssid() -> Option<String> {
     command_output("/usr/sbin/iwgetid", &["--raw"])
         .or_else(|| command_output("iwgetid", &["--raw"]))
+        .or_else(|| {
+            command_output(
+                "nmcli",
+                &["--terse", "--fields", "ACTIVE,SSID", "device", "wifi"],
+            )
+            .and_then(|output| {
+                output.lines().find_map(|line| {
+                    line.strip_prefix("yes:")
+                        .map(|ssid| ssid.replace("\\:", ":").replace("\\\\", "\\"))
+                })
+            })
+        })
         .map(|ssid| ssid.trim().to_string())
         .filter(|ssid| !ssid.is_empty())
+}
+
+#[cfg(target_os = "linux")]
+fn platform_network_context() -> NetworkContext {
+    let default_interface = platform_default_interface();
+    NetworkContext {
+        default_service: default_interface.clone(),
+        dns_servers: linux_dns_servers(default_interface.as_deref()),
+        ssid: linux_ssid(),
+        default_interface,
+    }
 }
 
 #[cfg(target_os = "macos")]
 fn mac_default_service(device: &str) -> Option<String> {
     let order = command_output("/usr/sbin/networksetup", &["-listnetworkserviceorder"])
         .or_else(|| command_output("networksetup", &["-listnetworkserviceorder"]))?;
+    parse_mac_default_service(&order, device)
+}
+
+#[cfg(target_os = "macos")]
+fn parse_mac_default_service(order: &str, device: &str) -> Option<String> {
     let mut service = None;
     for line in order.lines() {
-        if line.trim_start().starts_with('(') {
-            service = line
-                .trim()
-                .split_once(')')
-                .map(|(_, value)| value.trim().to_string());
+        let trimmed = line.trim();
+        if let Some((index, value)) = trimmed
+            .strip_prefix('(')
+            .and_then(|value| value.split_once(')'))
+            && !index.is_empty()
+            && index.chars().all(|character| character.is_ascii_digit())
+            && !value.trim().is_empty()
+        {
+            service = Some(value.trim().to_string());
         }
         if line.contains(&format!("Device: {device}")) {
             return service;
@@ -395,15 +449,9 @@ fn platform_default_interface() -> Option<String> {
 }
 
 #[cfg(target_os = "macos")]
-fn platform_dns_servers() -> Vec<String> {
-    let Some(device) = platform_default_interface() else {
-        return Vec::new();
-    };
-    let Some(service) = mac_default_service(&device) else {
-        return Vec::new();
-    };
-    command_output("/usr/sbin/networksetup", &["-getdnsservers", &service])
-        .or_else(|| command_output("networksetup", &["-getdnsservers", &service]))
+fn mac_dns_servers(service: &str) -> Vec<String> {
+    command_output("/usr/sbin/networksetup", &["-getdnsservers", service])
+        .or_else(|| command_output("networksetup", &["-getdnsservers", service]))
         .filter(|output| !output.starts_with("There aren't any DNS Servers set on"))
         .map(|output| {
             output
@@ -417,40 +465,167 @@ fn platform_dns_servers() -> Vec<String> {
 }
 
 #[cfg(target_os = "macos")]
-fn platform_ssid() -> Option<String> {
-    let device = platform_default_interface()?;
-    let service = mac_default_service(&device)?;
-    command_output("/usr/sbin/networksetup", &["-getairportnetwork", &service])
-        .or_else(|| command_output("networksetup", &["-getairportnetwork", &service]))?
+fn mac_ssid(service: &str) -> Option<String> {
+    command_output("/usr/sbin/networksetup", &["-getairportnetwork", service])
+        .or_else(|| command_output("networksetup", &["-getairportnetwork", service]))?
         .split_once(':')
         .map(|(_, ssid)| ssid.trim().to_string())
         .filter(|ssid| !ssid.is_empty() && !ssid.contains("not associated"))
 }
 
 #[cfg(target_os = "windows")]
-fn platform_default_interface() -> Option<String> {
-    None
+fn windows_ip_configuration() -> (Option<String>, Vec<String>) {
+    let script = concat!(
+        "$route=Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue | ",
+        "Where-Object {$_.NextHop -ne '0.0.0.0'} | Sort-Object RouteMetric,InterfaceMetric | ",
+        "Select-Object -First 1; if ($null -eq $route) {$route=Get-NetRoute ",
+        "-DestinationPrefix '::/0' -ErrorAction SilentlyContinue | Sort-Object ",
+        "RouteMetric,InterfaceMetric | Select-Object -First 1}; if ($null -ne $route) ",
+        "{$config=Get-NetIPConfiguration -InterfaceIndex $route.InterfaceIndex; ",
+        "[Console]::OutputEncoding=[Text.Encoding]::UTF8; Write-Output ",
+        "('INTERFACE=' + $config.InterfaceAlias); @($config.DNSServer.ServerAddresses) | ",
+        "ForEach-Object {Write-Output ('DNS=' + $_)}}"
+    );
+    let Some(output) = command_output(
+        "powershell.exe",
+        &[
+            "-NoLogo",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            script,
+        ],
+    ) else {
+        return (None, Vec::new());
+    };
+    let mut default_interface = None;
+    let mut dns_servers = Vec::new();
+    for line in output.lines().map(str::trim) {
+        if let Some(value) = line.strip_prefix("INTERFACE=") {
+            if !value.is_empty() {
+                default_interface = Some(value.to_string());
+            }
+        } else if let Some(value) = line.strip_prefix("DNS=")
+            && value.parse::<std::net::IpAddr>().is_ok()
+        {
+            dns_servers.push(value.to_string());
+        }
+    }
+    dns_servers.sort();
+    dns_servers.dedup();
+    (default_interface, dns_servers)
 }
 
 #[cfg(target_os = "windows")]
-fn platform_dns_servers() -> Vec<String> {
-    Vec::new()
+fn windows_ssid() -> Option<String> {
+    use std::{ffi::c_void, ptr::null_mut, slice};
+    use windows::Win32::{
+        Foundation::{ERROR_SUCCESS, HANDLE},
+        NetworkManagement::WiFi::{
+            WLAN_API_VERSION_2_0, WLAN_CONNECTION_ATTRIBUTES, WLAN_INTERFACE_INFO_LIST,
+            WlanCloseHandle, WlanEnumInterfaces, WlanFreeMemory, WlanOpenHandle,
+            WlanQueryInterface, wlan_interface_state_connected,
+            wlan_intf_opcode_current_connection,
+        },
+    };
+
+    unsafe {
+        let mut negotiated_version = 0;
+        let mut handle = HANDLE::default();
+        if WlanOpenHandle(
+            WLAN_API_VERSION_2_0,
+            None,
+            &mut negotiated_version,
+            &mut handle,
+        ) != ERROR_SUCCESS.0
+        {
+            return None;
+        }
+
+        let mut list: *mut WLAN_INTERFACE_INFO_LIST = null_mut();
+        let mut result = None;
+        if WlanEnumInterfaces(handle, None, &mut list) == ERROR_SUCCESS.0 && !list.is_null() {
+            let interface_list = &*list;
+            let interfaces = slice::from_raw_parts(
+                interface_list.InterfaceInfo.as_ptr(),
+                interface_list.dwNumberOfItems as usize,
+            );
+            for interface in interfaces {
+                if interface.isState != wlan_interface_state_connected {
+                    continue;
+                }
+                let mut size = 0;
+                let mut data: *mut c_void = null_mut();
+                if WlanQueryInterface(
+                    handle,
+                    &interface.InterfaceGuid,
+                    wlan_intf_opcode_current_connection,
+                    None,
+                    &mut size,
+                    &mut data,
+                    None,
+                ) == ERROR_SUCCESS.0
+                    && !data.is_null()
+                {
+                    let attributes = &*(data as *const WLAN_CONNECTION_ATTRIBUTES);
+                    let ssid = &attributes.wlanAssociationAttributes.dot11Ssid;
+                    let length = (ssid.uSSIDLength as usize).min(ssid.ucSSID.len());
+                    let value = String::from_utf8_lossy(&ssid.ucSSID[..length])
+                        .trim()
+                        .to_string();
+                    WlanFreeMemory(data);
+                    if !value.is_empty() {
+                        result = Some(value);
+                        break;
+                    }
+                }
+            }
+            WlanFreeMemory(list.cast());
+        }
+        let _ = WlanCloseHandle(handle, None);
+        result
+    }
 }
 
 #[cfg(target_os = "windows")]
-fn platform_ssid() -> Option<String> {
-    command_output("netsh.exe", &["wlan", "show", "interfaces"])?
-        .lines()
-        .find_map(|line| {
-            let line = line.trim();
-            (!line.starts_with("BSSID") && line.starts_with("SSID"))
-                .then(|| {
-                    line.split_once(':')
-                        .map(|(_, value)| value.trim().to_string())
-                })
-                .flatten()
-        })
-        .filter(|ssid| !ssid.is_empty())
+fn platform_network_context() -> NetworkContext {
+    let (default_interface, dns_servers) = windows_ip_configuration();
+    NetworkContext {
+        default_interface,
+        default_service: None,
+        dns_servers,
+        ssid: windows_ssid(),
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn platform_network_context() -> NetworkContext {
+    let default_interface = platform_default_interface();
+    let default_service = default_interface.as_deref().and_then(mac_default_service);
+    NetworkContext {
+        dns_servers: default_service
+            .as_deref()
+            .map(mac_dns_servers)
+            .unwrap_or_default(),
+        ssid: default_service.as_deref().and_then(mac_ssid),
+        default_interface,
+        default_service,
+    }
+}
+
+#[cfg(all(test, target_os = "macos"))]
+mod macos_tests {
+    use super::parse_mac_default_service;
+
+    #[test]
+    fn maps_device_without_treating_hardware_line_as_a_service() {
+        let order = "An asterisk (*) denotes that a network service is disabled.\n(1) Wi-Fi\n(Hardware Port: Wi-Fi, Device: en0)\n(2) Thunderbolt Bridge\n(Hardware Port: Thunderbolt Bridge, Device: bridge0)\n";
+
+        assert_eq!(
+            parse_mac_default_service(order, "en0").as_deref(),
+            Some("Wi-Fi")
+        );
+    }
 }
 
 #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
@@ -464,18 +639,13 @@ fn platform_set_launch_at_login(_options: &LaunchAtLoginOptions, _enabled: bool)
 }
 
 #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
-fn platform_default_interface() -> Option<String> {
-    None
-}
-
-#[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
-fn platform_dns_servers() -> Vec<String> {
-    Vec::new()
-}
-
-#[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
-fn platform_ssid() -> Option<String> {
-    None
+fn platform_network_context() -> NetworkContext {
+    NetworkContext {
+        default_interface: None,
+        default_service: None,
+        dns_servers: Vec::new(),
+        ssid: None,
+    }
 }
 
 #[cfg(test)]

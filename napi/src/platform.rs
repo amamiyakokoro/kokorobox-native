@@ -20,6 +20,7 @@ pub struct JsLaunchAtLoginStatus {
 #[napi(object)]
 pub struct JsNetworkContext {
     pub default_interface: Option<String>,
+    pub default_service: Option<String>,
     pub dns_servers: Vec<String>,
     pub ssid: Option<String>,
 }
@@ -48,6 +49,7 @@ impl From<kokorobox_native::NetworkContext> for JsNetworkContext {
     fn from(value: kokorobox_native::NetworkContext) -> Self {
         Self {
             default_interface: value.default_interface,
+            default_service: value.default_service,
             dns_servers: value.dns_servers,
             ssid: value.ssid,
         }

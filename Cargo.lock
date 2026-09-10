@@ -315,6 +315,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "kokorobox-native"
+version = "0.5.0"
+dependencies = [
+ "anyhow",
+ "file-icon",
+ "rule-converter",
+ "windows",
+]
+
+[[package]]
+name = "kokorobox-native-napi"
+version = "0.5.0"
+dependencies = [
+ "kokorobox-native",
+ "napi",
+ "napi-build",
+ "napi-derive",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.189"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -681,26 +701,6 @@ name = "slab"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
-
-[[package]]
-name = "kokorobox-native"
-version = "0.4.0"
-dependencies = [
- "anyhow",
- "file-icon",
- "rule-converter",
- "windows",
-]
-
-[[package]]
-name = "kokorobox-native-napi"
-version = "0.4.0"
-dependencies = [
- "napi",
- "napi-build",
- "napi-derive",
- "kokorobox-native",
-]
 
 [[package]]
 name = "syn"

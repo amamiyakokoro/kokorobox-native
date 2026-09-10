@@ -11,6 +11,7 @@ export interface NativeCapabilities {
   windowsFirewall: boolean;
   launchAtLogin: boolean;
   networkContext: boolean;
+  coreFilePrivileges: boolean;
 }
 
 export interface LaunchAtLoginOptions {
@@ -29,8 +30,17 @@ export interface LaunchAtLoginStatus {
 /** Best-effort active-network state. Unavailable fields are omitted instead of guessed. */
 export interface NetworkContext {
   defaultInterface?: string;
+  /** Active network-service name. Currently populated on macOS and Linux. */
+  defaultService?: string;
   dnsServers: string[];
   ssid?: string;
+}
+
+export interface CorePrivilegeStatus {
+  /** Canonical path validated by the native library. */
+  path: string;
+  /** Whether the set-user-ID bit is present. */
+  granted: boolean;
 }
 
 export interface ApplicationInfo {
@@ -103,6 +113,13 @@ export function setLaunchAtLogin(
   enabled: boolean,
 ): Promise<LaunchAtLoginStatus>;
 export function getNetworkContext(): Promise<NetworkContext>;
+/** Inspect only validated `mihomo` and `mihomo-alpha` executable paths. */
+export function getCorePrivilegeStatus(paths: string[]): CorePrivilegeStatus[];
+/** Grant or revoke the constrained Unix core-file privilege. */
+export function setCorePrivileges(
+  paths: string[],
+  enabled: boolean,
+): Promise<CorePrivilegeStatus[]>;
 export function inspectApplication(path: string): Promise<ApplicationInfo>;
 export function scanWindowsApplications(
   directory: string,
