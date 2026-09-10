@@ -337,7 +337,7 @@ fn platform_default_interface() -> Option<String> {
 
 #[cfg(target_os = "linux")]
 fn resolv_conf_dns_servers() -> Vec<String> {
-    let mut servers = fs::read_to_string("/etc/resolv.conf")
+    let mut servers: Vec<String> = fs::read_to_string("/etc/resolv.conf")
         .map(|content| {
             content
                 .lines()
