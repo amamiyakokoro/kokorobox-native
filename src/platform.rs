@@ -4,6 +4,8 @@ use std::{path::Path, process::Command};
 use std::path::PathBuf;
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use std::{env, fs};
+#[cfg(target_os = "windows")]
+use std::{os::windows::process::CommandExt, process::Stdio};
 
 use anyhow::{Result, anyhow};
 
@@ -257,22 +259,63 @@ fn windows_task_xml(options: &LaunchAtLoginOptions) -> String {
 
 #[cfg(target_os = "windows")]
 fn windows_task_exists(identifier: &str) -> bool {
-    Command::new("schtasks.exe")
+    windows_task_command()
         .args(["/query", "/tn", identifier])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
         .status()
         .is_ok_and(|status| status.success())
 }
 
 #[cfg(target_os = "windows")]
+fn windows_task_command() -> Command {
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+
+    let mut command = Command::new("schtasks.exe");
+    command.creation_flags(CREATE_NO_WINDOW);
+    command
+}
+
+#[cfg(target_os = "windows")]
+fn task_command_error(operation: &str, exit_code: Option<i32>) -> anyhow::Error {
+    let exit_code = exit_code
+        .map(|code| code.to_string())
+        .unwrap_or_else(|| "unknown".to_string());
+    anyhow!("Unable to {operation} launch-at-login task (exit code: {exit_code})")
+}
+
+#[cfg(target_os = "windows")]
 fn run_windows_task_command(arguments: &[String], operation: &str) -> Result<()> {
-    let output = Command::new("schtasks.exe").args(arguments).output()?;
-    if !output.status.success() {
+    let status = windows_task_command()
+        .args(arguments)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()?;
+    if !status.success() {
+        return Err(task_command_error(operation, status.code()));
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
+fn run_elevated_windows_task_command(arguments: &[String], operation: &str) -> Result<()> {
+    let exit_code = crate::run_elevated("schtasks.exe", arguments)?;
+    if exit_code != 0 {
         return Err(anyhow!(
-            "Unable to {operation} launch-at-login task: {}",
-            String::from_utf8_lossy(&output.stderr).trim()
+            "Unable to {operation} legacy launch-at-login task (exit code: {exit_code})"
         ));
     }
     Ok(())
+}
+
+#[cfg(target_os = "windows")]
+fn delete_windows_task_arguments(identifier: &str) -> Vec<String> {
+    vec![
+        "/delete".to_string(),
+        "/tn".to_string(),
+        identifier.to_string(),
+        "/f".to_string(),
+    ]
 }
 
 #[cfg(target_os = "windows")]
@@ -289,15 +332,12 @@ fn platform_set_launch_at_login(options: &LaunchAtLoginOptions, enabled: bool) -
         if !windows_task_exists(&options.identifier) {
             return Ok(());
         }
-        return run_windows_task_command(
-            &[
-                "/delete".to_string(),
-                "/tn".to_string(),
-                options.identifier.clone(),
-                "/f".to_string(),
-            ],
-            "delete",
-        );
+        let arguments = delete_windows_task_arguments(&options.identifier);
+        return run_windows_task_command(&arguments, "delete").or_else(|_| {
+            // Versions before 0.5.1 created this task with HighestAvailable.
+            // Removing that legacy task may require one final UAC prompt.
+            run_elevated_windows_task_command(&arguments, "delete")
+        });
     }
 
     let task_path =
@@ -317,7 +357,18 @@ fn platform_set_launch_at_login(options: &LaunchAtLoginOptions, enabled: bool) -
         task_path.to_string_lossy().into_owned(),
         "/f".to_string(),
     ];
-    let result = run_windows_task_command(&arguments, "create");
+    let result = run_windows_task_command(&arguments, "create").or_else(|create_error| {
+        if !windows_task_exists(&options.identifier) {
+            return Err(create_error);
+        }
+
+        // An elevated task left by an older release cannot be overwritten by
+        // the unelevated app. Delete it once, then create the replacement as
+        // the current user so future launches never inherit elevation.
+        let delete_arguments = delete_windows_task_arguments(&options.identifier);
+        run_elevated_windows_task_command(&delete_arguments, "migrate")?;
+        run_windows_task_command(&arguments, "create")
+    });
     let _ = fs::remove_file(task_path);
     result
 }
