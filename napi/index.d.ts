@@ -3,6 +3,28 @@ export interface FirewallRule {
   applicationPath: string;
 }
 
+export interface NativeCapabilities {
+  applicationInspection: boolean;
+  windowsApplicationScan: boolean;
+  windowsAccount: boolean;
+  windowsElevation: boolean;
+  windowsFirewall: boolean;
+}
+
+export interface ApplicationInfo {
+  executablePath: string;
+  executableName: string;
+  identifier: string;
+  identifierKind: "windows-executable" | "macos-signing-identifier" | "linux-executable";
+  iconDataUrl?: string;
+}
+
+export interface ApplicationScanResult {
+  applications: ApplicationInfo[];
+  truncated: boolean;
+  unreadableDirectoryCount: number;
+}
+
 export interface RuleConvertOptions {
   inputTarget?: "mihomo" | "general" | "egern" | "sing-box";
   inputFormat?:
@@ -52,6 +74,13 @@ export function fileToStr(
   options?: RuleConvertOptions | null,
 ): RuleStringResult;
 export function getAppName(path: string): string;
+export function getNativeCapabilities(): NativeCapabilities;
+export function inspectApplication(path: string): Promise<ApplicationInfo>;
+export function scanWindowsApplications(
+  directory: string,
+  maximumResults?: number | null,
+  excludedExecutableNames?: string[] | null,
+): Promise<ApplicationScanResult>;
 export function getCurrentUserSid(): string;
 export function isRunningAsAdmin(): boolean;
 export function runElevated(command: string, args?: string[]): number;
