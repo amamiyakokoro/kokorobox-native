@@ -245,7 +245,7 @@ fn windows_task_xml(options: &LaunchAtLoginOptions) -> String {
         .collect::<Vec<_>>()
         .join(" ");
     format!(
-        "<?xml version=\"1.0\" encoding=\"UTF-16\"?>\n<Task version=\"1.2\" xmlns=\"http://schemas.microsoft.com/windows/2004/02/mit/task\">\n  <Triggers><LogonTrigger><Enabled>true</Enabled><Delay>PT3S</Delay></LogonTrigger></Triggers>\n  <Principals><Principal id=\"Author\"><LogonType>InteractiveToken</LogonType><RunLevel>HighestAvailable</RunLevel></Principal></Principals>\n  <Settings><MultipleInstancesPolicy>Parallel</MultipleInstancesPolicy><DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries><StopIfGoingOnBatteries>false</StopIfGoingOnBatteries><AllowHardTerminate>false</AllowHardTerminate><StartWhenAvailable>false</StartWhenAvailable><RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable><AllowStartOnDemand>true</AllowStartOnDemand><Enabled>true</Enabled><Hidden>false</Hidden><RunOnlyIfIdle>false</RunOnlyIfIdle><WakeToRun>false</WakeToRun><ExecutionTimeLimit>PT0S</ExecutionTimeLimit><Priority>3</Priority></Settings>\n  <Actions Context=\"Author\"><Exec><Command>{}</Command>{}</Exec></Actions>\n</Task>\n",
+        "<?xml version=\"1.0\" encoding=\"UTF-16\"?>\n<Task version=\"1.2\" xmlns=\"http://schemas.microsoft.com/windows/2004/02/mit/task\">\n  <Triggers><LogonTrigger><Enabled>true</Enabled><Delay>PT3S</Delay></LogonTrigger></Triggers>\n  <Principals><Principal id=\"Author\"><LogonType>InteractiveToken</LogonType><RunLevel>LeastPrivilege</RunLevel></Principal></Principals>\n  <Settings><MultipleInstancesPolicy>Parallel</MultipleInstancesPolicy><DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries><StopIfGoingOnBatteries>false</StopIfGoingOnBatteries><AllowHardTerminate>false</AllowHardTerminate><StartWhenAvailable>false</StartWhenAvailable><RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable><AllowStartOnDemand>true</AllowStartOnDemand><Enabled>true</Enabled><Hidden>false</Hidden><RunOnlyIfIdle>false</RunOnlyIfIdle><WakeToRun>false</WakeToRun><ExecutionTimeLimit>PT0S</ExecutionTimeLimit><Priority>3</Priority></Settings>\n  <Actions Context=\"Author\"><Exec><Command>{}</Command>{}</Exec></Actions>\n</Task>\n",
         xml_escape(&options.executable_path),
         if arguments.is_empty() {
             String::new()
@@ -264,6 +264,18 @@ fn windows_task_exists(identifier: &str) -> bool {
 }
 
 #[cfg(target_os = "windows")]
+fn run_windows_task_command(arguments: &[String], operation: &str) -> Result<()> {
+    let output = Command::new("schtasks.exe").args(arguments).output()?;
+    if !output.status.success() {
+        return Err(anyhow!(
+            "Unable to {operation} launch-at-login task: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
 fn platform_get_launch_at_login(options: &LaunchAtLoginOptions) -> Result<LaunchAtLoginStatus> {
     Ok(LaunchAtLoginStatus {
         enabled: windows_task_exists(&options.identifier),
@@ -277,21 +289,15 @@ fn platform_set_launch_at_login(options: &LaunchAtLoginOptions, enabled: bool) -
         if !windows_task_exists(&options.identifier) {
             return Ok(());
         }
-        let exit_code = crate::run_elevated(
-            "schtasks.exe",
+        return run_windows_task_command(
             &[
                 "/delete".to_string(),
                 "/tn".to_string(),
                 options.identifier.clone(),
                 "/f".to_string(),
             ],
-        )?;
-        if exit_code != 0 {
-            return Err(anyhow!(
-                "schtasks.exe failed to delete launch task ({exit_code})"
-            ));
-        }
-        return Ok(());
+            "delete",
+        );
     }
 
     let task_path =
@@ -311,15 +317,27 @@ fn platform_set_launch_at_login(options: &LaunchAtLoginOptions, enabled: bool) -
         task_path.to_string_lossy().into_owned(),
         "/f".to_string(),
     ];
-    let result = crate::run_elevated("schtasks.exe", &arguments);
+    let result = run_windows_task_command(&arguments, "create");
     let _ = fs::remove_file(task_path);
-    let exit_code = result?;
-    if exit_code != 0 {
-        return Err(anyhow!(
-            "schtasks.exe failed to create launch task ({exit_code})"
-        ));
+    result
+}
+
+#[cfg(all(test, target_os = "windows"))]
+mod windows_tests {
+    use super::{LaunchAtLoginOptions, windows_task_xml};
+
+    #[test]
+    fn launch_at_login_task_runs_with_least_privilege() {
+        let xml = windows_task_xml(&LaunchAtLoginOptions {
+            identifier: "KokoroBox".to_string(),
+            display_name: "KokoroBox".to_string(),
+            executable_path: r"C:\Program Files\KokoroBox\KokoroBox.exe".to_string(),
+            arguments: Vec::new(),
+        });
+
+        assert!(xml.contains("<RunLevel>LeastPrivilege</RunLevel>"));
+        assert!(!xml.contains("HighestAvailable"));
     }
-    Ok(())
 }
 
 #[cfg(target_os = "linux")]

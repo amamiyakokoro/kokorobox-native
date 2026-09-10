@@ -23,6 +23,13 @@ the SSID, avoiding localized `netsh` output.
 Missing data is omitted or returned as an empty list. Consumers must not treat
 an unavailable SSID as an empty SSID match.
 
+## Launch at login
+
+Windows launch-at-login tasks use `InteractiveToken` with `LeastPrivilege`.
+Creating, updating and deleting the current user's task must not request UAC,
+and the launched application must not inherit an elevated token. macOS uses a
+Login Item and Linux uses an XDG autostart entry.
+
 ## Mihomo core-file privileges
 
 `getCorePrivilegeStatus(paths)` synchronously inspects the set-user-ID bit.
