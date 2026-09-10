@@ -3,6 +3,7 @@
 `kokorobox-native` is the native Node.js bridge maintained for KokoroBox Desktop. It provides:
 
 - file and application icon extraction;
+- cross-platform application inspection and Windows executable-directory scanning;
 - rule-file conversion;
 - Windows elevation and administrator checks;
 - Windows user SID lookup;
@@ -10,6 +11,17 @@
 
 The JavaScript API is currently compatible with `@uruhalushia/sparkle-native` 0.1.2. New APIs
 should be added here behind stable typed exports before KokoroBox Desktop adopts them.
+
+## Platform contract
+
+`getNativeCapabilities()` reports which optional operating-system integrations are available in the
+loaded binary. Windows-only APIs, including SID lookup, elevation, and Firewall management, return
+an `UNSUPPORTED_PLATFORM:` error outside Windows; they never silently report success.
+
+`inspectApplication(path)` and `scanWindowsApplications(directory)` run asynchronously from
+Node.js. They return normalized application-routing identifiers, a human-readable application name,
+and an optional icon data URL. The scanner deliberately skips links, bounds its result count, and
+reports unreadable nested directories instead of following them.
 
 ## Packages
 
