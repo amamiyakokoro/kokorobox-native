@@ -52,14 +52,12 @@ function requireNative() {
   if (process.platform === "win32") {
     if (process.arch === "x64") return requireBinding("win32-x64-msvc");
     if (process.arch === "arm64") return requireBinding("win32-arm64-msvc");
-    if (process.arch === "ia32") return requireBinding("win32-ia32-msvc");
   } else if (process.platform === "darwin") {
     if (process.arch === "x64") return requireBinding("darwin-x64");
     if (process.arch === "arm64") return requireBinding("darwin-arm64");
   } else if (process.platform === "linux") {
     if (process.arch === "x64") return requireBinding("linux-x64-gnu");
     if (process.arch === "arm64") return requireBinding("linux-arm64-gnu");
-    if (process.arch === "loong64") return requireBinding("linux-loong64-gnu");
   }
 
   loadErrors.push(

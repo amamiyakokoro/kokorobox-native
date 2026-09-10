@@ -21,16 +21,10 @@ importers:
       kokorobox-native-linux-arm64-gnu:
         specifier: 0.1.0
         version: 0.1.0
-      kokorobox-native-linux-loong64-gnu:
-        specifier: 0.1.0
-        version: 0.1.0
       kokorobox-native-linux-x64-gnu:
         specifier: 0.1.0
         version: 0.1.0
       kokorobox-native-win32-arm64-msvc:
-        specifier: 0.1.0
-        version: 0.1.0
-      kokorobox-native-win32-ia32-msvc:
         specifier: 0.1.0
         version: 0.1.0
       kokorobox-native-win32-x64-msvc:
@@ -688,13 +682,6 @@ packages:
     os: [linux]
     libc: [glibc]
 
-  kokorobox-native-linux-loong64-gnu@0.1.0:
-    resolution: {integrity: sha512-jJyh9UgTxfA9YskNZvGvyk8E4PjH+Y48tfE4hU7pXDZzlgu6shGfC7U7LThbqb7jgXq5UURCJblQSh+XeRn8Pg==}
-    engines: {node: '>=16'}
-    cpu: [loong64]
-    os: [linux]
-    libc: [glibc]
-
   kokorobox-native-linux-x64-gnu@0.1.0:
     resolution: {integrity: sha512-Xq3bGTQp3hoVHE/Ew+XDOl8cfW+IhdZBSE8PqwwQT1QZTRyTOIRkequQIWBI3AEUji7h79n9Ma7xLUcAsZCXuw==}
     engines: {node: '>=16'}
@@ -706,12 +693,6 @@ packages:
     resolution: {integrity: sha512-ROtNbJ0BIBLydb0yBgboHf2bFAxf8KCdnkJiI0j59/nN1ouHtfAo2pj5TzcMXH/HUp8QOT3U5BAl3IRqfswZDg==}
     engines: {node: '>=16'}
     cpu: [arm64]
-    os: [win32]
-
-  kokorobox-native-win32-ia32-msvc@0.1.0:
-    resolution: {integrity: sha512-3MxE5Z/1gyp4hhzmp9KGjEycIcfM5DyXQXE14hmYcz7T695gqQVPVAP2yIB+3N/M/umGSVLlkFBPofDAKihREQ==}
-    engines: {node: '>=16'}
-    cpu: [ia32]
     os: [win32]
 
   kokorobox-native-win32-x64-msvc@0.1.0:
@@ -1265,16 +1246,10 @@ snapshots:
   kokorobox-native-linux-arm64-gnu@0.1.0:
     optional: true
 
-  kokorobox-native-linux-loong64-gnu@0.1.0:
-    optional: true
-
   kokorobox-native-linux-x64-gnu@0.1.0:
     optional: true
 
   kokorobox-native-win32-arm64-msvc@0.1.0:
-    optional: true
-
-  kokorobox-native-win32-ia32-msvc@0.1.0:
     optional: true
 
   kokorobox-native-win32-x64-msvc@0.1.0:

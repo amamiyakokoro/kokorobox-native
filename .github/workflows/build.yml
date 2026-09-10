@@ -26,11 +26,9 @@ jobs:
         include:
           - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu }
           - { os: ubuntu-latest, target: aarch64-unknown-linux-gnu }
-          - { os: ubuntu-latest, target: loongarch64-unknown-linux-gnu }
           - { os: macos-latest, target: x86_64-apple-darwin }
           - { os: macos-latest, target: aarch64-apple-darwin }
           - { os: windows-latest, target: x86_64-pc-windows-msvc }
-          - { os: windows-latest, target: i686-pc-windows-msvc }
           - { os: windows-latest, target: aarch64-pc-windows-msvc }
 
     steps:
@@ -103,16 +101,8 @@ jobs:
           targets: ${{ matrix.target }}
 
       - name: Install cross (Linux)
-        if: runner.os == 'Linux' && !contains(matrix.target, 'loongarch64')
+        if: runner.os == 'Linux'
         uses: taiki-e/install-action@cross
-
-      - name: Install Zig (Linux loongarch64)
-        if: runner.os == 'Linux' && contains(matrix.target, 'loongarch64')
-        uses: mlugg/setup-zig@v2
-
-      - name: Install cargo-zigbuild (Linux loongarch64)
-        if: runner.os == 'Linux' && contains(matrix.target, 'loongarch64')
-        uses: taiki-e/install-action@cargo-zigbuild
 
       - name: Cache Rust build
         uses: Swatinem/rust-cache@v2
@@ -125,23 +115,12 @@ jobs:
         run: pnpm install --frozen-lockfile
         working-directory: napi
 
-      - name: Build .node (Linux cross)
-        if: runner.os == 'Linux' && !contains(matrix.target, 'loongarch64')
+      - name: Build .node (Linux)
+        if: runner.os == 'Linux'
         shell: bash
         run: |
           for attempt in 1 2 3; do
             pnpm exec napi build --platform --release --strip --no-js --dts napi.generated.d.ts --target ${{ matrix.target }} --use-cross && exit 0
-            sleep $((attempt * 10))
-          done
-          exit 1
-        working-directory: napi
-
-      - name: Build .node (Linux loongarch64)
-        if: runner.os == 'Linux' && contains(matrix.target, 'loongarch64')
-        shell: bash
-        run: |
-          for attempt in 1 2 3; do
-            pnpm exec napi build --platform --release --strip --no-js --dts napi.generated.d.ts --target ${{ matrix.target }} --cross-compile && exit 0
             sleep $((attempt * 10))
           done
           exit 1
@@ -381,11 +360,9 @@ jobs:
           for target in \
             linux-x64-gnu \
             linux-arm64-gnu \
-            linux-loong64-gnu \
             darwin-x64 \
             darwin-arm64 \
             win32-x64-msvc \
-            win32-ia32-msvc \
             win32-arm64-msvc; do
             test -f "npm/${target}/kokorobox-native.${target}.node"
             test -f "npm/${target}/package.json"
