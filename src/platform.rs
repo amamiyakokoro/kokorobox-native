@@ -2,10 +2,22 @@ use std::{path::Path, process::Command};
 
 #[cfg(target_os = "linux")]
 use std::path::PathBuf;
-#[cfg(any(target_os = "linux", target_os = "windows"))]
+#[cfg(target_os = "linux")]
 use std::{env, fs};
 #[cfg(target_os = "windows")]
 use std::{os::windows::process::CommandExt, process::Stdio};
+
+#[cfg(target_os = "windows")]
+use windows::{
+    Win32::{
+        Foundation::{ERROR_FILE_NOT_FOUND, ERROR_SUCCESS},
+        System::Registry::{
+            HKEY, HKEY_CURRENT_USER, KEY_SET_VALUE, REG_OPTION_NON_VOLATILE, REG_SZ, RRF_RT_REG_SZ,
+            RegCloseKey, RegCreateKeyExW, RegDeleteValueW, RegGetValueW, RegSetValueExW,
+        },
+    },
+    core::PCWSTR,
+};
 
 use anyhow::{Result, anyhow};
 
@@ -229,32 +241,165 @@ fn platform_set_launch_at_login(options: &LaunchAtLoginOptions, enabled: bool) -
 }
 
 #[cfg(target_os = "windows")]
-fn xml_escape(value: &str) -> String {
-    value
-        .replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-        .replace('\'', "&apos;")
+const WINDOWS_RUN_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Run";
+
+#[cfg(target_os = "windows")]
+fn wide_null(value: &str) -> Vec<u16> {
+    value.encode_utf16().chain(std::iter::once(0)).collect()
 }
 
 #[cfg(target_os = "windows")]
-fn windows_task_xml(options: &LaunchAtLoginOptions) -> String {
-    let arguments = options
-        .arguments
-        .iter()
-        .map(|argument| format!("\"{}\"", argument.replace('"', "\\\"")))
-        .collect::<Vec<_>>()
-        .join(" ");
-    format!(
-        "<?xml version=\"1.0\" encoding=\"UTF-16\"?>\n<Task version=\"1.2\" xmlns=\"http://schemas.microsoft.com/windows/2004/02/mit/task\">\n  <Triggers><LogonTrigger><Enabled>true</Enabled><Delay>PT3S</Delay></LogonTrigger></Triggers>\n  <Principals><Principal id=\"Author\"><LogonType>InteractiveToken</LogonType><RunLevel>LeastPrivilege</RunLevel></Principal></Principals>\n  <Settings><MultipleInstancesPolicy>Parallel</MultipleInstancesPolicy><DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries><StopIfGoingOnBatteries>false</StopIfGoingOnBatteries><AllowHardTerminate>false</AllowHardTerminate><StartWhenAvailable>false</StartWhenAvailable><RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable><AllowStartOnDemand>true</AllowStartOnDemand><Enabled>true</Enabled><Hidden>false</Hidden><RunOnlyIfIdle>false</RunOnlyIfIdle><WakeToRun>false</WakeToRun><ExecutionTimeLimit>PT0S</ExecutionTimeLimit><Priority>3</Priority></Settings>\n  <Actions Context=\"Author\"><Exec><Command>{}</Command>{}</Exec></Actions>\n</Task>\n",
-        xml_escape(&options.executable_path),
-        if arguments.is_empty() {
-            String::new()
-        } else {
-            format!("<Arguments>{}</Arguments>", xml_escape(&arguments))
+fn quote_windows_command_argument(argument: &str) -> String {
+    if !argument.is_empty()
+        && !argument
+            .chars()
+            .any(|character| matches!(character, ' ' | '\t' | '\n' | '\r' | '"'))
+    {
+        return argument.to_string();
+    }
+
+    let mut quoted = String::from("\"");
+    let mut backslashes = 0usize;
+    for character in argument.chars() {
+        match character {
+            '\\' => backslashes += 1,
+            '"' => {
+                quoted.push_str(&"\\".repeat(backslashes * 2 + 1));
+                quoted.push('"');
+                backslashes = 0;
+            }
+            _ => {
+                quoted.push_str(&"\\".repeat(backslashes));
+                backslashes = 0;
+                quoted.push(character);
+            }
         }
-    )
+    }
+    quoted.push_str(&"\\".repeat(backslashes * 2));
+    quoted.push('"');
+    quoted
+}
+
+#[cfg(target_os = "windows")]
+fn windows_run_value(options: &LaunchAtLoginOptions) -> String {
+    std::iter::once(options.executable_path.as_str())
+        .chain(options.arguments.iter().map(String::as_str))
+        .map(quote_windows_command_argument)
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+#[cfg(target_os = "windows")]
+struct RegistryKey(HKEY);
+
+#[cfg(target_os = "windows")]
+impl Drop for RegistryKey {
+    fn drop(&mut self) {
+        unsafe {
+            let _ = RegCloseKey(self.0);
+        }
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn windows_run_value_exists(identifier: &str) -> Result<bool> {
+    let key = wide_null(WINDOWS_RUN_KEY);
+    let name = wide_null(identifier);
+    let result = unsafe {
+        RegGetValueW(
+            HKEY_CURRENT_USER,
+            PCWSTR(key.as_ptr()),
+            PCWSTR(name.as_ptr()),
+            RRF_RT_REG_SZ,
+            None,
+            None,
+            None,
+        )
+    };
+    if result == ERROR_SUCCESS {
+        return Ok(true);
+    }
+    if result == ERROR_FILE_NOT_FOUND {
+        return Ok(false);
+    }
+    Err(anyhow!(
+        "Unable to query launch-at-login registry value (error code: {})",
+        result.0
+    ))
+}
+
+#[cfg(target_os = "windows")]
+fn set_windows_run_value(options: &LaunchAtLoginOptions) -> Result<()> {
+    let key_path = wide_null(WINDOWS_RUN_KEY);
+    let name = wide_null(&options.identifier);
+    let mut key = HKEY::default();
+    let result = unsafe {
+        RegCreateKeyExW(
+            HKEY_CURRENT_USER,
+            PCWSTR(key_path.as_ptr()),
+            None,
+            PCWSTR::null(),
+            REG_OPTION_NON_VOLATILE,
+            KEY_SET_VALUE,
+            None,
+            &mut key,
+            None,
+        )
+    };
+    if result != ERROR_SUCCESS {
+        return Err(anyhow!(
+            "Unable to open launch-at-login registry key (error code: {})",
+            result.0
+        ));
+    }
+    let key = RegistryKey(key);
+    let value = wide_null(&windows_run_value(options))
+        .into_iter()
+        .flat_map(u16::to_le_bytes)
+        .collect::<Vec<_>>();
+    let result =
+        unsafe { RegSetValueExW(key.0, PCWSTR(name.as_ptr()), None, REG_SZ, Some(&value)) };
+    if result != ERROR_SUCCESS {
+        return Err(anyhow!(
+            "Unable to set launch-at-login registry value (error code: {})",
+            result.0
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
+fn delete_windows_run_value(identifier: &str) -> Result<()> {
+    let key_path = wide_null(WINDOWS_RUN_KEY);
+    let name = wide_null(identifier);
+    let mut key = HKEY::default();
+    let result = unsafe {
+        windows::Win32::System::Registry::RegOpenKeyExW(
+            HKEY_CURRENT_USER,
+            PCWSTR(key_path.as_ptr()),
+            None,
+            KEY_SET_VALUE,
+            &mut key,
+        )
+    };
+    if result == ERROR_FILE_NOT_FOUND {
+        return Ok(());
+    }
+    if result != ERROR_SUCCESS {
+        return Err(anyhow!(
+            "Unable to open launch-at-login registry key (error code: {})",
+            result.0
+        ));
+    }
+    let key = RegistryKey(key);
+    let result = unsafe { RegDeleteValueW(key.0, PCWSTR(name.as_ptr())) };
+    if result != ERROR_SUCCESS && result != ERROR_FILE_NOT_FOUND {
+        return Err(anyhow!(
+            "Unable to delete launch-at-login registry value (error code: {})",
+            result.0
+        ));
+    }
+    Ok(())
 }
 
 #[cfg(target_os = "windows")]
@@ -321,73 +466,52 @@ fn delete_windows_task_arguments(identifier: &str) -> Vec<String> {
 #[cfg(target_os = "windows")]
 fn platform_get_launch_at_login(options: &LaunchAtLoginOptions) -> Result<LaunchAtLoginStatus> {
     Ok(LaunchAtLoginStatus {
-        enabled: windows_task_exists(&options.identifier),
-        backend: "windows-task-scheduler".to_string(),
+        enabled: windows_run_value_exists(&options.identifier)?
+            || windows_task_exists(&options.identifier),
+        backend: "windows-current-user-run".to_string(),
     })
 }
 
 #[cfg(target_os = "windows")]
 fn platform_set_launch_at_login(options: &LaunchAtLoginOptions, enabled: bool) -> Result<()> {
     if !enabled {
-        if !windows_task_exists(&options.identifier) {
-            return Ok(());
+        delete_windows_run_value(&options.identifier)?;
+        if windows_task_exists(&options.identifier) {
+            let arguments = delete_windows_task_arguments(&options.identifier);
+            run_windows_task_command(&arguments, "delete").or_else(|_| {
+                // Versions before 0.5.3 used Task Scheduler. Removing an
+                // elevated legacy task may require one final UAC prompt.
+                run_elevated_windows_task_command(&arguments, "delete")
+            })?;
         }
-        let arguments = delete_windows_task_arguments(&options.identifier);
-        return run_windows_task_command(&arguments, "delete").or_else(|_| {
-            // Versions before 0.5.1 created this task with HighestAvailable.
-            // Removing that legacy task may require one final UAC prompt.
-            run_elevated_windows_task_command(&arguments, "delete")
-        });
+        return Ok(());
     }
 
-    let task_path =
-        env::temp_dir().join(format!("{}-{}.xml", options.identifier, std::process::id()));
-    let utf16 = windows_task_xml(options)
-        .encode_utf16()
-        .flat_map(u16::to_le_bytes)
-        .collect::<Vec<_>>();
-    let mut content = vec![0xff, 0xfe];
-    content.extend(utf16);
-    fs::write(&task_path, content)?;
-    let arguments = vec![
-        "/create".to_string(),
-        "/tn".to_string(),
-        options.identifier.clone(),
-        "/xml".to_string(),
-        task_path.to_string_lossy().into_owned(),
-        "/f".to_string(),
-    ];
-    let result = run_windows_task_command(&arguments, "create").or_else(|create_error| {
-        if !windows_task_exists(&options.identifier) {
-            return Err(create_error);
-        }
-
-        // An elevated task left by an older release cannot be overwritten by
-        // the unelevated app. Delete it once, then create the replacement as
-        // the current user so future launches never inherit elevation.
+    if windows_task_exists(&options.identifier) {
         let delete_arguments = delete_windows_task_arguments(&options.identifier);
-        run_elevated_windows_task_command(&delete_arguments, "migrate")?;
-        run_windows_task_command(&arguments, "create")
-    });
-    let _ = fs::remove_file(task_path);
-    result
+        run_windows_task_command(&delete_arguments, "delete")
+            .or_else(|_| run_elevated_windows_task_command(&delete_arguments, "migrate"))?;
+    }
+    set_windows_run_value(options)
 }
 
 #[cfg(all(test, target_os = "windows"))]
 mod windows_tests {
-    use super::{LaunchAtLoginOptions, windows_task_xml};
+    use super::{LaunchAtLoginOptions, windows_run_value};
 
     #[test]
-    fn launch_at_login_task_runs_with_least_privilege() {
-        let xml = windows_task_xml(&LaunchAtLoginOptions {
+    fn launch_at_login_registry_value_quotes_every_argument() {
+        let value = windows_run_value(&LaunchAtLoginOptions {
             identifier: "KokoroBox".to_string(),
             display_name: "KokoroBox".to_string(),
             executable_path: r"C:\Program Files\KokoroBox\KokoroBox.exe".to_string(),
-            arguments: Vec::new(),
+            arguments: vec!["--flag".to_string(), "value with spaces".to_string()],
         });
 
-        assert!(xml.contains("<RunLevel>LeastPrivilege</RunLevel>"));
-        assert!(!xml.contains("HighestAvailable"));
+        assert_eq!(
+            value,
+            r#""C:\Program Files\KokoroBox\KokoroBox.exe" --flag "value with spaces""#
+        );
     }
 }
 

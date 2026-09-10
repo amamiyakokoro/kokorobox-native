@@ -25,13 +25,13 @@ an unavailable SSID as an empty SSID match.
 
 ## Launch at login
 
-Windows launch-at-login tasks use `InteractiveToken` with `LeastPrivilege`.
-Creating, updating and deleting the current user's task must not request UAC,
-and the launched application must not inherit an elevated token. Task Scheduler
-probes and normal mutations run without a visible console window. A task left by
-a release older than 0.5.1 may require one final UAC prompt so it can be removed;
-the replacement is still created unelevated. macOS uses a Login Item and Linux
-uses an XDG autostart entry.
+Windows stores the command in the current user's
+`HKCU\Software\Microsoft\Windows\CurrentVersion\Run` key. Creating, updating
+and deleting this value does not request UAC, and the launched application does
+not inherit an elevated token. A Task Scheduler entry left by a release older
+than 0.5.3 is removed during migration; an elevated legacy task may require one
+final UAC prompt. Task probes and cleanup do not display a console window.
+macOS uses a Login Item and Linux uses an XDG autostart entry.
 
 ## Mihomo core-file privileges
 
