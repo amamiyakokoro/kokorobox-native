@@ -129,4 +129,6 @@ export function scanWindowsApplications(
 export function getCurrentUserSid(): string;
 export function isRunningAsAdmin(): boolean;
 export function runElevated(command: string, args?: string[]): number;
+export function launchElevated(command: string, args?: string[]): void;
+export function launchUnelevated(command: string, args?: string[]): void;
 export function setupFirewallRules(rules: FirewallRule[]): void;

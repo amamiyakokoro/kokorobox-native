@@ -16,6 +16,14 @@ pub fn run_elevated(_command: &str, _args: &[String]) -> anyhow::Result<u32> {
     Err(windows_only("run_elevated"))
 }
 
+pub fn launch_elevated(_command: &str, _args: &[String]) -> anyhow::Result<()> {
+    Err(windows_only("launch_elevated"))
+}
+
+pub fn launch_unelevated(_command: &str, _args: &[String]) -> anyhow::Result<()> {
+    Err(windows_only("launch_unelevated"))
+}
+
 pub fn setup_firewall_rules(_rules: Vec<FirewallRule>) -> anyhow::Result<()> {
     Err(windows_only("setup_firewall_rules"))
 }
@@ -30,6 +38,8 @@ mod tests {
         assert!(error.to_string().starts_with("UNSUPPORTED_PLATFORM:"));
         assert!(is_running_as_admin().is_err());
         assert!(run_elevated("ignored", &[]).is_err());
+        assert!(launch_elevated("ignored", &[]).is_err());
+        assert!(launch_unelevated("ignored", &[]).is_err());
         assert!(setup_firewall_rules(Vec::new()).is_err());
     }
 }

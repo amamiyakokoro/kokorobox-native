@@ -91,4 +91,6 @@ export const scanWindowsApplications = nativeBinding.scanWindowsApplications;
 export const getCurrentUserSid = nativeBinding.getCurrentUserSid;
 export const isRunningAsAdmin = nativeBinding.isRunningAsAdmin;
 export const runElevated = nativeBinding.runElevated;
+export const launchElevated = nativeBinding.launchElevated;
+export const launchUnelevated = nativeBinding.launchUnelevated;
 export const setupFirewallRules = nativeBinding.setupFirewallRules;

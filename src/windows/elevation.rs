@@ -3,12 +3,19 @@ use std::ptr::addr_of;
 
 use anyhow::{Result, anyhow};
 use windows::Win32::Foundation::{ERROR_CANCELLED, HANDLE};
-use windows::Win32::System::Threading::{GetExitCodeProcess, INFINITE, WaitForSingleObject};
+use windows::Win32::Security::{TOKEN_ASSIGN_PRIMARY, TOKEN_DUPLICATE, TOKEN_QUERY};
+use windows::Win32::System::Threading::{
+    CREATE_UNICODE_ENVIRONMENT, CreateProcessWithTokenW, GetExitCodeProcess, INFINITE,
+    LOGON_WITH_PROFILE, OpenProcess, OpenProcessToken, PROCESS_INFORMATION,
+    PROCESS_QUERY_LIMITED_INFORMATION, STARTUPINFOW, WaitForSingleObject,
+};
 use windows::Win32::UI::Shell::{
     SEE_MASK_NOASYNC, SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW, ShellExecuteExW,
 };
-use windows::Win32::UI::WindowsAndMessaging::SW_HIDE;
-use windows::core::PCWSTR;
+use windows::Win32::UI::WindowsAndMessaging::{
+    GetShellWindow, GetWindowThreadProcessId, SW_HIDE, SW_SHOWNORMAL,
+};
+use windows::core::{PCWSTR, PWSTR};
 
 use super::handle::Handle;
 
@@ -78,6 +85,27 @@ fn shell_execute_and_exit_code(info: &mut SHELLEXECUTEINFOW) -> Result<u32> {
     }
 }
 
+fn shell_execute(info: &mut SHELLEXECUTEINFOW) -> Result<()> {
+    unsafe {
+        ShellExecuteExW(info).map_err(|error| {
+            if error.code().0 == HRESULT_FROM_WIN32_ERROR_CANCELLED
+                || error.code().0 == ERROR_CANCELLED.to_hresult().0
+            {
+                anyhow!("User canceled")
+            } else {
+                anyhow!("ShellExecuteExW failed: {error}")
+            }
+        })
+    }
+}
+
+fn command_line(command: &str, args: &[String]) -> Vec<u16> {
+    let mut parts = Vec::with_capacity(args.len() + 1);
+    parts.push(quote_windows_arg(command));
+    parts.extend(args.iter().map(|arg| quote_windows_arg(arg)));
+    to_wide_null(&parts.join(" "))
+}
+
 pub fn run_elevated(command: &str, args: &[String]) -> Result<u32> {
     let verb = to_wide_null("runas");
     let file = to_wide_null(command);
@@ -99,4 +127,98 @@ pub fn run_elevated(command: &str, args: &[String]) -> Result<u32> {
     };
 
     shell_execute_and_exit_code(&mut info)
+}
+
+pub fn launch_elevated(command: &str, args: &[String]) -> Result<()> {
+    let verb = to_wide_null("runas");
+    let file = to_wide_null(command);
+    let parameters = args
+        .iter()
+        .map(|arg| quote_windows_arg(arg))
+        .collect::<Vec<_>>()
+        .join(" ");
+    let parameters = to_wide_null(&parameters);
+
+    let mut info = SHELLEXECUTEINFOW {
+        cbSize: size_of::<SHELLEXECUTEINFOW>() as u32,
+        fMask: SEE_MASK_NOASYNC,
+        lpVerb: PCWSTR(verb.as_ptr()),
+        lpFile: PCWSTR(file.as_ptr()),
+        lpParameters: PCWSTR(parameters.as_ptr()),
+        nShow: SW_SHOWNORMAL.0,
+        ..Default::default()
+    };
+
+    shell_execute(&mut info)
+}
+
+pub fn launch_unelevated(command: &str, args: &[String]) -> Result<()> {
+    unsafe {
+        let shell_window = GetShellWindow();
+        if shell_window.0.is_null() {
+            return Err(anyhow!("GetShellWindow returned no desktop shell"));
+        }
+
+        let mut shell_process_id = 0u32;
+        GetWindowThreadProcessId(shell_window, Some(&mut shell_process_id));
+        if shell_process_id == 0 {
+            return Err(anyhow!(
+                "GetWindowThreadProcessId returned no shell process"
+            ));
+        }
+
+        let shell_process = Handle(
+            OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, shell_process_id)
+                .map_err(|error| anyhow!("OpenProcess for desktop shell failed: {error}"))?,
+        );
+        let mut token = HANDLE::default();
+        OpenProcessToken(
+            shell_process.0,
+            TOKEN_ASSIGN_PRIMARY | TOKEN_DUPLICATE | TOKEN_QUERY,
+            &mut token,
+        )
+        .map_err(|error| anyhow!("OpenProcessToken for desktop shell failed: {error}"))?;
+        let token = Handle(token);
+
+        let application = to_wide_null(command);
+        let mut command_line = command_line(command, args);
+        let startup = STARTUPINFOW {
+            cb: size_of::<STARTUPINFOW>() as u32,
+            wShowWindow: SW_SHOWNORMAL.0 as u16,
+            ..Default::default()
+        };
+        let mut process_info = PROCESS_INFORMATION::default();
+        CreateProcessWithTokenW(
+            token.0,
+            LOGON_WITH_PROFILE,
+            PCWSTR(application.as_ptr()),
+            Some(PWSTR(command_line.as_mut_ptr())),
+            CREATE_UNICODE_ENVIRONMENT,
+            None,
+            PCWSTR::null(),
+            &startup,
+            &mut process_info,
+        )
+        .map_err(|error| anyhow!("CreateProcessWithTokenW failed: {error}"))?;
+        let _process = Handle(process_info.hProcess);
+        let _thread = Handle(process_info.hThread);
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{command_line, to_wide_null};
+
+    #[test]
+    fn command_line_quotes_windows_paths_and_arguments() {
+        let actual = command_line(
+            r"C:\Program Files\KokoroBox\KokoroBox.exe",
+            &["--example".to_string(), "value with spaces".to_string()],
+        );
+        let expected = to_wide_null(
+            r#""C:\Program Files\KokoroBox\KokoroBox.exe" --example "value with spaces""#,
+        );
+        assert_eq!(actual, expected);
+    }
 }

@@ -16,7 +16,10 @@ pub use application::{
 };
 pub use icons::{file_to_data_url, get_app_name};
 #[cfg(not(target_os = "windows"))]
-pub use non_windows::{current_user_sid, is_running_as_admin, run_elevated, setup_firewall_rules};
+pub use non_windows::{
+    current_user_sid, is_running_as_admin, launch_elevated, launch_unelevated, run_elevated,
+    setup_firewall_rules,
+};
 pub use platform::{
     LaunchAtLoginOptions, LaunchAtLoginStatus, NetworkContext, get_launch_at_login,
     get_network_context, set_launch_at_login,
@@ -26,7 +29,10 @@ pub use rules::{
     RuleConvertOptions, RuleOutputInfo, RuleSkippedItem, RuleStringResult, rule_file_to_string,
 };
 #[cfg(target_os = "windows")]
-pub use windows::{current_user_sid, is_running_as_admin, run_elevated, setup_firewall_rules};
+pub use windows::{
+    current_user_sid, is_running_as_admin, launch_elevated, launch_unelevated, run_elevated,
+    setup_firewall_rules,
+};
 
 #[derive(Debug, Clone)]
 pub struct FirewallRule {

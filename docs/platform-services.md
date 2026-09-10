@@ -33,6 +33,15 @@ than 0.5.3 is removed during migration; an elevated legacy task may require one
 final UAC prompt. Task probes and cleanup do not display a console window.
 macOS uses a Login Item and Linux uses an XDG autostart entry.
 
+## Windows privilege relaunch
+
+`launchElevated(command, args)` starts a new process with the standard UAC
+`runas` verb. `launchUnelevated(command, args)` starts a new process using the
+interactive Explorer shell token. Both operations return after process creation
+and deliberately avoid scheduled tasks, services, or other persistent elevation.
+Consumers remain responsible for coordinating single-instance shutdown before
+the replacement process starts.
+
 ## Mihomo core-file privileges
 
 `getCorePrivilegeStatus(paths)` synchronously inspects the set-user-ID bit.

@@ -40,7 +40,7 @@ The full TypeScript declarations are shipped in
 | Rules | `fileToStr` |
 | Platform | `getLaunchAtLogin`, `setLaunchAtLogin`, `getNetworkContext` |
 | Core permissions | `getCorePrivilegeStatus`, `setCorePrivileges` |
-| Windows | `getCurrentUserSid`, `isRunningAsAdmin`, `runElevated`, `setupFirewallRules` |
+| Windows | `getCurrentUserSid`, `isRunningAsAdmin`, `runElevated`, `launchElevated`, `launchUnelevated`, `setupFirewallRules` |
 
 `inspectApplication` validates the input for the current platform and resolves
 it to a routing identifier: an executable path on Windows and Linux, or a code
@@ -71,6 +71,12 @@ Use `getNativeCapabilities()` before enabling an optional system feature.
 Windows account, elevation, Firewall, and application-scan APIs report an
 `UNSUPPORTED_PLATFORM:` error on other operating systems instead of behaving as
 no-ops.
+
+`launchElevated(command, args)` and `launchUnelevated(command, args)` start a
+new Windows process without waiting for it. The first presents the standard UAC
+prompt; the second uses the interactive desktop shell token so an elevated app
+can restart at normal user integrity. They do not configure persistent
+elevation.
 
 ## Contributing
 
