@@ -9,6 +9,28 @@ export interface NativeCapabilities {
   windowsAccount: boolean;
   windowsElevation: boolean;
   windowsFirewall: boolean;
+  launchAtLogin: boolean;
+  networkContext: boolean;
+}
+
+export interface LaunchAtLoginOptions {
+  /** Stable, filesystem-safe identifier, such as `com.amamiyakokoro.kokorobox`. */
+  identifier: string;
+  displayName: string;
+  executablePath: string;
+  arguments?: string[];
+}
+
+export interface LaunchAtLoginStatus {
+  enabled: boolean;
+  backend: "windows-task-scheduler" | "macos-login-item" | "linux-xdg-autostart";
+}
+
+/** Best-effort active-network state. Unavailable fields are omitted instead of guessed. */
+export interface NetworkContext {
+  defaultInterface?: string;
+  dnsServers: string[];
+  ssid?: string;
 }
 
 export interface ApplicationInfo {
@@ -75,6 +97,12 @@ export function fileToStr(
 ): RuleStringResult;
 export function getAppName(path: string): string;
 export function getNativeCapabilities(): NativeCapabilities;
+export function getLaunchAtLogin(options: LaunchAtLoginOptions): Promise<LaunchAtLoginStatus>;
+export function setLaunchAtLogin(
+  options: LaunchAtLoginOptions,
+  enabled: boolean,
+): Promise<LaunchAtLoginStatus>;
+export function getNetworkContext(): Promise<NetworkContext>;
 export function inspectApplication(path: string): Promise<ApplicationInfo>;
 export function scanWindowsApplications(
   directory: string,
