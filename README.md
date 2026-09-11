@@ -59,8 +59,9 @@ inferred.
 
 Windows privilege relaunches are explicit and non-persistent. `launchElevated`
 starts a fresh process through the UAC `runas` verb, while `launchUnelevated`
-starts it with the interactive desktop shell token. Neither API creates a task,
-service, startup entry, or waits for the child process to exit.
+starts it with the interactive desktop shell as its logical parent. This avoids
+privileged token duplication. Neither API creates a task, service, startup
+entry, or waits for the child process to exit.
 
 Unix core elevation is deliberately narrow. `setCorePrivileges()` accepts only
 canonical, existing, executable files named `mihomo` or `mihomo-alpha`, rejects

@@ -3,11 +3,12 @@ use std::ptr::addr_of;
 
 use anyhow::{Result, anyhow};
 use windows::Win32::Foundation::{ERROR_CANCELLED, HANDLE};
-use windows::Win32::Security::{TOKEN_ASSIGN_PRIMARY, TOKEN_DUPLICATE, TOKEN_QUERY};
 use windows::Win32::System::Threading::{
-    CREATE_UNICODE_ENVIRONMENT, CreateProcessWithTokenW, GetExitCodeProcess, INFINITE,
-    LOGON_WITH_PROFILE, OpenProcess, OpenProcessToken, PROCESS_INFORMATION,
-    PROCESS_QUERY_LIMITED_INFORMATION, STARTUPINFOW, WaitForSingleObject,
+    CREATE_UNICODE_ENVIRONMENT, CreateProcessW, DeleteProcThreadAttributeList,
+    EXTENDED_STARTUPINFO_PRESENT, GetExitCodeProcess, INFINITE, InitializeProcThreadAttributeList,
+    LPPROC_THREAD_ATTRIBUTE_LIST, OpenProcess, PROC_THREAD_ATTRIBUTE_PARENT_PROCESS,
+    PROCESS_CREATE_PROCESS, PROCESS_INFORMATION, STARTUPINFOEXW, UpdateProcThreadAttribute,
+    WaitForSingleObject,
 };
 use windows::Win32::UI::Shell::{
     SEE_MASK_NOASYNC, SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW, ShellExecuteExW,
@@ -106,6 +107,16 @@ fn command_line(command: &str, args: &[String]) -> Vec<u16> {
     to_wide_null(&parts.join(" "))
 }
 
+struct ProcThreadAttributeList(LPPROC_THREAD_ATTRIBUTE_LIST);
+
+impl Drop for ProcThreadAttributeList {
+    fn drop(&mut self) {
+        unsafe {
+            DeleteProcThreadAttributeList(self.0);
+        }
+    }
+}
+
 pub fn run_elevated(command: &str, args: &[String]) -> Result<u32> {
     let verb = to_wide_null("runas");
     let file = to_wide_null(command);
@@ -167,39 +178,58 @@ pub fn launch_unelevated(command: &str, args: &[String]) -> Result<()> {
             ));
         }
 
+        // Make Explorer the logical parent instead of copying its token. Windows
+        // then creates the child in the interactive shell's security context
+        // without requiring SE_IMPERSONATE_NAME in this elevated process.
         let shell_process = Handle(
-            OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, shell_process_id)
+            OpenProcess(PROCESS_CREATE_PROCESS, false, shell_process_id)
                 .map_err(|error| anyhow!("OpenProcess for desktop shell failed: {error}"))?,
         );
-        let mut token = HANDLE::default();
-        OpenProcessToken(
-            shell_process.0,
-            TOKEN_ASSIGN_PRIMARY | TOKEN_DUPLICATE | TOKEN_QUERY,
-            &mut token,
+
+        let mut attribute_bytes = 0usize;
+        let _ = InitializeProcThreadAttributeList(None, 1, None, &mut attribute_bytes);
+        if attribute_bytes == 0 {
+            return Err(anyhow!("Unable to size process attribute list"));
+        }
+        let word_size = size_of::<usize>();
+        let mut attribute_storage = vec![0usize; attribute_bytes.div_ceil(word_size)];
+        let attribute_list = LPPROC_THREAD_ATTRIBUTE_LIST(attribute_storage.as_mut_ptr().cast());
+        InitializeProcThreadAttributeList(Some(attribute_list), 1, None, &mut attribute_bytes)
+            .map_err(|error| anyhow!("InitializeProcThreadAttributeList failed: {error}"))?;
+        let _attribute_list = ProcThreadAttributeList(attribute_list);
+
+        let parent_process = shell_process.0;
+        UpdateProcThreadAttribute(
+            attribute_list,
+            0,
+            PROC_THREAD_ATTRIBUTE_PARENT_PROCESS as usize,
+            Some(addr_of!(parent_process).cast()),
+            size_of::<HANDLE>(),
+            None,
+            None,
         )
-        .map_err(|error| anyhow!("OpenProcessToken for desktop shell failed: {error}"))?;
-        let token = Handle(token);
+        .map_err(|error| anyhow!("UpdateProcThreadAttribute(parent) failed: {error}"))?;
 
         let application = to_wide_null(command);
         let mut command_line = command_line(command, args);
-        let startup = STARTUPINFOW {
-            cb: size_of::<STARTUPINFOW>() as u32,
-            wShowWindow: SW_SHOWNORMAL.0 as u16,
-            ..Default::default()
-        };
+        let mut startup = STARTUPINFOEXW::default();
+        startup.StartupInfo.cb = size_of::<STARTUPINFOEXW>() as u32;
+        startup.StartupInfo.wShowWindow = SW_SHOWNORMAL.0 as u16;
+        startup.lpAttributeList = attribute_list;
         let mut process_info = PROCESS_INFORMATION::default();
-        CreateProcessWithTokenW(
-            token.0,
-            LOGON_WITH_PROFILE,
+        CreateProcessW(
             PCWSTR(application.as_ptr()),
             Some(PWSTR(command_line.as_mut_ptr())),
-            CREATE_UNICODE_ENVIRONMENT,
+            None,
+            None,
+            false,
+            CREATE_UNICODE_ENVIRONMENT | EXTENDED_STARTUPINFO_PRESENT,
             None,
             PCWSTR::null(),
-            &startup,
+            &startup.StartupInfo,
             &mut process_info,
         )
-        .map_err(|error| anyhow!("CreateProcessWithTokenW failed: {error}"))?;
+        .map_err(|error| anyhow!("CreateProcessW from desktop shell failed: {error}"))?;
         let _process = Handle(process_info.hProcess);
         let _thread = Handle(process_info.hThread);
         Ok(())
