@@ -31,7 +31,10 @@ and deleting this value does not request UAC, and the launched application does
 not inherit an elevated token. A Task Scheduler entry left by a release older
 than 0.5.3 is removed during migration; an elevated legacy task may require one
 final UAC prompt. Task probes and cleanup do not display a console window.
-macOS uses a Login Item and Linux uses an XDG autostart entry.
+macOS uses `SMAppService.mainApp` and Linux uses an XDG autostart entry. The
+macOS implementation does not invoke AppleScript or request Automation access.
+`requiresApproval` distinguishes an enabled registration that the user must
+approve in System Settings from an unregistered entry.
 
 ## Windows privilege relaunch
 

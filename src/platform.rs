@@ -32,6 +32,7 @@ pub struct LaunchAtLoginOptions {
 #[derive(Debug, Clone)]
 pub struct LaunchAtLoginStatus {
     pub enabled: bool,
+    pub requires_approval: bool,
     pub backend: String,
 }
 
@@ -148,6 +149,7 @@ fn desktop_entry(options: &LaunchAtLoginOptions) -> String {
 fn platform_get_launch_at_login(options: &LaunchAtLoginOptions) -> Result<LaunchAtLoginStatus> {
     Ok(LaunchAtLoginStatus {
         enabled: autostart_path(options)?.is_file(),
+        requires_approval: false,
         backend: "linux-xdg-autostart".to_string(),
     })
 }
@@ -170,11 +172,6 @@ fn platform_set_launch_at_login(options: &LaunchAtLoginOptions, enabled: bool) -
 }
 
 #[cfg(target_os = "macos")]
-fn applescript_escape(value: &str) -> String {
-    value.replace('\\', "\\\\").replace('"', "\\\"")
-}
-
-#[cfg(target_os = "macos")]
 fn mac_application_path(executable_path: &str) -> Result<String> {
     let marker = ".app";
     let Some(index) = executable_path.find(marker) else {
@@ -186,58 +183,61 @@ fn mac_application_path(executable_path: &str) -> Result<String> {
 }
 
 #[cfg(target_os = "macos")]
-fn mac_login_item_name(options: &LaunchAtLoginOptions) -> Result<String> {
-    let application = mac_application_path(&options.executable_path)?;
-    Path::new(&application)
-        .file_stem()
-        .and_then(|name| name.to_str())
-        .map(ToOwned::to_owned)
-        .ok_or_else(|| anyhow!("Unable to determine macOS application bundle name"))
-}
-
-#[cfg(target_os = "macos")]
-fn run_osascript(script: &str) -> Result<String> {
-    let output = Command::new("/usr/bin/osascript")
-        .args(["-e", script])
-        .output()?;
-    if !output.status.success() {
+fn mac_main_app_service(
+    options: &LaunchAtLoginOptions,
+) -> Result<objc2::rc::Retained<objc2_service_management::SMAppService>> {
+    mac_application_path(&options.executable_path)?;
+    if !options.arguments.is_empty() {
         return Err(anyhow!(
-            "osascript failed: {}",
-            String::from_utf8_lossy(&output.stderr).trim()
+            "macOS main-app launch at login does not support command-line arguments"
         ));
     }
-    Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+
+    // SAFETY: `mainAppService` is a process-wide ServiceManagement singleton
+    // accessor and returns a retained object owned by this scope.
+    Ok(unsafe { objc2_service_management::SMAppService::mainAppService() })
 }
 
 #[cfg(target_os = "macos")]
 fn platform_get_launch_at_login(options: &LaunchAtLoginOptions) -> Result<LaunchAtLoginStatus> {
-    let name = mac_login_item_name(options)?;
-    let output =
-        run_osascript("tell application \"System Events\" to get the name of every login item")?;
-    let enabled = output
-        .split(',')
-        .map(str::trim)
-        .any(|login_item| login_item == name);
+    use objc2_service_management::SMAppServiceStatus;
+
+    let service = mac_main_app_service(options)?;
+    // SAFETY: The retained service remains alive for the status query.
+    let status = unsafe { service.status() };
     Ok(LaunchAtLoginStatus {
-        enabled,
-        backend: "macos-login-item".to_string(),
+        enabled: status == SMAppServiceStatus::Enabled,
+        requires_approval: status == SMAppServiceStatus::RequiresApproval,
+        backend: "macos-sm-app-service".to_string(),
     })
 }
 
 #[cfg(target_os = "macos")]
 fn platform_set_launch_at_login(options: &LaunchAtLoginOptions, enabled: bool) -> Result<()> {
-    let application = applescript_escape(&mac_application_path(&options.executable_path)?);
-    let name = applescript_escape(&mac_login_item_name(options)?);
-    let script = if enabled {
-        format!(
-            "tell application \"System Events\"\nrepeat with loginItem in login items\nif name of loginItem is \"{name}\" then delete loginItem\nend repeat\nmake login item at end with properties {{path:\"{application}\", hidden:false}}\nend tell"
-        )
-    } else {
-        format!(
-            "tell application \"System Events\"\nrepeat with loginItem in login items\nif name of loginItem is \"{name}\" then delete loginItem\nend repeat\nend tell"
-        )
-    };
-    run_osascript(&script).map(|_| ())
+    use objc2_service_management::SMAppServiceStatus;
+
+    let service = mac_main_app_service(options)?;
+    // SAFETY: The retained service remains alive for the operation.
+    let status = unsafe { service.status() };
+    if enabled {
+        if matches!(
+            status,
+            SMAppServiceStatus::NotRegistered | SMAppServiceStatus::NotFound
+        ) {
+            // SAFETY: The call is made on the main-app service owned by the
+            // current signed application bundle.
+            unsafe { service.registerAndReturnError() }
+                .map_err(|error| anyhow!("Unable to register launch at login: {error}"))?;
+        }
+    } else if !matches!(
+        status,
+        SMAppServiceStatus::NotRegistered | SMAppServiceStatus::NotFound
+    ) {
+        // SAFETY: The call is made on the retained main-app service.
+        unsafe { service.unregisterAndReturnError() }
+            .map_err(|error| anyhow!("Unable to unregister launch at login: {error}"))?;
+    }
+    Ok(())
 }
 
 #[cfg(target_os = "windows")]
@@ -468,6 +468,7 @@ fn platform_get_launch_at_login(options: &LaunchAtLoginOptions) -> Result<Launch
     Ok(LaunchAtLoginStatus {
         enabled: windows_run_value_exists(&options.identifier)?
             || windows_task_exists(&options.identifier),
+        requires_approval: false,
         backend: "windows-current-user-run".to_string(),
     })
 }

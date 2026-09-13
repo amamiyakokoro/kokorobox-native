@@ -50,10 +50,10 @@ Node.js main thread. Application inspection returns a stable routing identifier,
 a display name, and an optional icon data URL. The Windows scanner skips links,
 limits its result count, and counts nested directories it cannot read.
 
-Launch-at-login uses the current user's Run registry key on Windows, Login Items
-on macOS, and XDG Autostart on Linux. Managing the Windows entry
-does not elevate the caller, and the launched application keeps the interactive
-user's normal token. `getNetworkContext()` is best-effort: unavailable
+Launch-at-login uses the current user's Run registry key on Windows,
+`SMAppService.mainApp` on macOS, and XDG Autostart on Linux. Managing the
+Windows entry does not elevate the caller, and the launched application keeps
+the interactive user's normal token. `getNetworkContext()` is best-effort: unavailable
 interface, network-service, DNS, or Wi-Fi fields are omitted rather than
 inferred.
 
