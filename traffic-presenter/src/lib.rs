@@ -71,6 +71,10 @@ impl PresenterState {
                 self.traffic = Some(TrafficSnapshot { up, down });
                 PresenterTransition::Updated
             }
+            PresenterCommand::Unavailable { .. } => {
+                self.traffic = None;
+                PresenterTransition::Updated
+            }
             PresenterCommand::Shutdown { .. } => PresenterTransition::Shutdown,
         }
     }
@@ -119,6 +123,9 @@ pub enum PresenterCommand {
         up: u64,
         down: u64,
     },
+    Unavailable {
+        version: u8,
+    },
     Shutdown {
         version: u8,
     },
@@ -129,6 +136,7 @@ impl PresenterCommand {
         match self {
             Self::Configure { version, .. }
             | Self::Traffic { version, .. }
+            | Self::Unavailable { version }
             | Self::Shutdown { version } => *version,
         }
     }
@@ -255,6 +263,13 @@ mod tests {
         assert!(state.visible);
         assert_eq!(state.combined_label(), "↑ 1.00 KB/s  ↓ 2.00 KB/s");
         assert_eq!(state.single_line_label(), "↑ 1.00 KB/s  ↓ 2.00 KB/s");
+        assert_eq!(
+            state.apply(PresenterCommand::Unavailable {
+                version: PROTOCOL_VERSION,
+            }),
+            PresenterTransition::Updated
+        );
+        assert_eq!(state.upload_label(), "↑ —");
         assert_eq!(
             state.apply(PresenterCommand::Shutdown {
                 version: PROTOCOL_VERSION,
