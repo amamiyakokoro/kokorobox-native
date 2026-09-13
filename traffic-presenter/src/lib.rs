@@ -99,6 +99,10 @@ impl PresenterState {
             self.download_label()
         )
     }
+
+    pub fn single_line_label(&self) -> String {
+        format!("{}  {}", self.upload_label(), self.download_label())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -250,6 +254,7 @@ mod tests {
 
         assert!(state.visible);
         assert_eq!(state.combined_label(), "↑ 1.00 KB/s  ↓ 2.00 KB/s");
+        assert_eq!(state.single_line_label(), "↑ 1.00 KB/s  ↓ 2.00 KB/s");
         assert_eq!(
             state.apply(PresenterCommand::Shutdown {
                 version: PROTOCOL_VERSION,
