@@ -3,7 +3,7 @@
 // @ts-nocheck
 
 import { existsSync } from 'node:fs'
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
@@ -15,6 +15,7 @@ const __dirname = new URL(".", import.meta.url).pathname.replace(
 const packageName = "kokorobox-native";
 const binaryName = "kokorobox-native";
 const loadErrors = [];
+let loadedTuple = null;
 
 function requireLocal(tuple) {
   const filename = join(__dirname, `${binaryName}.${tuple}.node`);
@@ -37,7 +38,25 @@ function requirePackage(tuple) {
 }
 
 function requireBinding(tuple) {
-  return requireLocal(tuple) || requirePackage(tuple);
+  const binding = requireLocal(tuple) || requirePackage(tuple);
+  if (binding) loadedTuple = tuple;
+  return binding;
+}
+
+export function getTrafficPresenterPath() {
+  const filename = `kokorobox-traffic-presenter${process.platform === "win32" ? ".exe" : ""}`;
+  const localPath = join(__dirname, filename);
+  if (existsSync(localPath)) return localPath;
+
+  if (loadedTuple) {
+    const packageEntry = require.resolve(`${packageName}-${loadedTuple}`);
+    const packagedPath = join(dirname(packageEntry), filename);
+    if (existsSync(packagedPath)) return packagedPath;
+  }
+
+  throw new Error(
+    `Traffic presenter is missing for ${process.platform} ${process.arch}`,
+  );
 }
 
 function requireNative() {

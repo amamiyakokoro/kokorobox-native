@@ -135,6 +135,8 @@ export function fileToStr(
 ): RuleStringResult;
 export function getAppName(path: string): string;
 export function getNativeCapabilities(): NativeCapabilities;
+/** Resolve the executable shipped beside the current platform binding. */
+export function getTrafficPresenterPath(): string;
 export function findExecutables(options: ExecutableSearchOptions): Promise<ExecutableCandidate[]>;
 export function getLaunchAtLogin(options: LaunchAtLoginOptions): Promise<LaunchAtLoginStatus>;
 export function setLaunchAtLogin(

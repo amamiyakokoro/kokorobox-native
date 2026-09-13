@@ -19,12 +19,14 @@ macOS, and GNU/Linux. The loader also accepts a development binary through
 import {
   getNativeCapabilities,
   getNetworkContext,
+  getTrafficPresenterPath,
   inspectApplication,
 } from "kokorobox-native";
 
 const capabilities = getNativeCapabilities();
 const network = await getNetworkContext();
 const app = await inspectApplication("/Applications/KokoroBox.app");
+const presenter = getTrafficPresenterPath();
 ```
 
 The full TypeScript declarations are shipped in
@@ -35,6 +37,7 @@ The full TypeScript declarations are shipped in
 | Area | Exports |
 | --- | --- |
 | Capabilities | `getNativeCapabilities` |
+| Traffic presenter | `getTrafficPresenterPath` |
 | Icons | `fileToDataUrl`, `getAppName` |
 | Applications | `inspectApplication`, `scanWindowsApplications`, `findExecutables` |
 | Rules | `fileToStr` |
@@ -79,6 +82,11 @@ canonical, existing executables named `mihomo` or `mihomo-alpha`; callers cannot
 use them as a general privileged-command interface. See the repository's
 [platform-services contract](../docs/platform-services.md) for validation and
 platform behavior.
+
+`getTrafficPresenterPath()` returns the presenter executable shipped in the
+same platform package as the loaded native binding. The presenter accepts the
+versioned JSON-lines protocol documented by the `traffic-presenter` crate on
+standard input and terminates when its parent closes that stream.
 
 ## Platform behavior
 

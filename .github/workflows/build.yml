@@ -85,7 +85,7 @@ jobs:
           node <<'NODE'
           const fs = require('node:fs')
           const version = process.env.RELEASE_VERSION
-          for (const file of ['Cargo.toml', 'napi/Cargo.toml']) {
+          for (const file of ['Cargo.toml', 'napi/Cargo.toml', 'traffic-presenter/Cargo.toml']) {
             const text = fs.readFileSync(file, 'utf8')
             fs.writeFileSync(file, text.replace(/^version = "([^"]+)"/m, `version = "${version}"`))
           }
@@ -126,6 +126,14 @@ jobs:
           exit 1
         working-directory: napi
 
+      - name: Build traffic presenter (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          cross build --release --target ${{ matrix.target }} -p kokorobox-traffic-presenter
+          cp "target/${{ matrix.target }}/release/kokorobox-traffic-presenter" \
+            "napi/kokorobox-traffic-presenter-${{ matrix.target }}"
+
       - name: Build .node (macOS)
         if: runner.os == 'macOS'
         shell: bash
@@ -136,6 +144,14 @@ jobs:
           done
           exit 1
         working-directory: napi
+
+      - name: Build traffic presenter (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          cargo build --release --target ${{ matrix.target }} -p kokorobox-traffic-presenter
+          cp "target/${{ matrix.target }}/release/kokorobox-traffic-presenter" \
+            "napi/kokorobox-traffic-presenter-${{ matrix.target }}"
 
       - name: Build .node (Windows static CRT)
         if: runner.os == 'Windows'
@@ -150,11 +166,23 @@ jobs:
           exit 1
         working-directory: napi
 
-      - name: Upload .node artifact
+      - name: Build traffic presenter (Windows static CRT)
+        if: runner.os == 'Windows'
+        shell: bash
+        env:
+          RUSTFLAGS: -C target-feature=+crt-static
+        run: |
+          cargo build --release --target ${{ matrix.target }} -p kokorobox-traffic-presenter
+          cp "target/${{ matrix.target }}/release/kokorobox-traffic-presenter.exe" \
+            "napi/kokorobox-traffic-presenter-${{ matrix.target }}.exe"
+
+      - name: Upload native artifacts
         uses: actions/upload-artifact@v7
         with:
           name: node-${{ matrix.target }}
-          path: napi/*.node
+          path: |
+            napi/*.node
+            napi/kokorobox-traffic-presenter-*
 
   pre-release:
     needs: [build-node]
@@ -183,7 +211,7 @@ jobs:
           node <<'NODE'
           const fs = require('node:fs')
           const version = process.env.CLEAN_VERSION
-          for (const file of ['Cargo.toml', 'napi/Cargo.toml']) {
+          for (const file of ['Cargo.toml', 'napi/Cargo.toml', 'traffic-presenter/Cargo.toml']) {
             const text = fs.readFileSync(file, 'utf8')
             fs.writeFileSync(file, text.replace(/^version = "([^"]+)"/m, `version = "${version}"`))
           }
@@ -192,7 +220,7 @@ jobs:
           json.version = version
           fs.writeFileSync(packageFile, `${JSON.stringify(json, null, 2)}\n`)
 
-          const lockPackages = new Set(['kokorobox-native', 'kokorobox-native-napi'])
+          const lockPackages = new Set(['kokorobox-native', 'kokorobox-native-napi', 'kokorobox-traffic-presenter'])
           const lines = fs.readFileSync('Cargo.lock', 'utf8').split('\n')
           let inPackage = false
           let updatePackage = false
@@ -221,7 +249,7 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Cargo.toml Cargo.lock napi/Cargo.toml napi/package.json
+          git add Cargo.toml Cargo.lock napi/Cargo.toml napi/package.json traffic-presenter/Cargo.toml
           if git diff --cached --quiet; then
             exit 0
           fi
@@ -350,7 +378,9 @@ jobs:
           merge-multiple: true
 
       - name: Copy native artifacts into platform packages
-        run: pnpm artifacts
+        run: |
+          pnpm artifacts
+          pnpm package-presenters
         working-directory: napi
 
       - name: Verify native artifacts
@@ -366,6 +396,12 @@ jobs:
             win32-arm64-msvc; do
             test -f "npm/${target}/kokorobox-native.${target}.node"
             test -f "npm/${target}/package.json"
+          done
+          for target in linux-x64-gnu linux-arm64-gnu darwin-x64 darwin-arm64; do
+            test -x "npm/${target}/kokorobox-traffic-presenter"
+          done
+          for target in win32-x64-msvc win32-arm64-msvc; do
+            test -f "npm/${target}/kokorobox-traffic-presenter.exe"
           done
           test -f index.js
           test -f index.d.ts

@@ -1,6 +1,6 @@
 {
   "name": "kokorobox-native",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "KokoroBox native bridge",
   "type": "module",
   "main": "index.js",
@@ -35,7 +35,8 @@
     "build": "napi build --platform --release --strip --no-js --dts napi.generated.d.ts",
     "build:debug": "napi build --platform --no-js --dts napi.generated.d.ts",
     "create-npm-dirs": "napi create-npm-dirs",
-    "artifacts": "napi artifacts"
+    "artifacts": "napi artifacts",
+    "package-presenters": "node package-presenters.mjs"
   },
   "devDependencies": {
     "@napi-rs/cli": "^3.8.6"
