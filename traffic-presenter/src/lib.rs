@@ -1,5 +1,7 @@
 #![deny(clippy::all)]
 
+pub mod runtime;
+
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -18,6 +20,85 @@ pub enum PresenterTheme {
     System,
     Light,
     Dark,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TrafficSnapshot {
+    pub up: u64,
+    pub down: u64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PresenterState {
+    pub visible: bool,
+    pub layout: PresenterLayout,
+    pub theme: PresenterTheme,
+    pub traffic: Option<TrafficSnapshot>,
+}
+
+impl Default for PresenterState {
+    fn default() -> Self {
+        Self {
+            visible: false,
+            layout: PresenterLayout::Stacked,
+            theme: PresenterTheme::System,
+            traffic: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PresenterTransition {
+    Updated,
+    Shutdown,
+}
+
+impl PresenterState {
+    pub fn apply(&mut self, command: PresenterCommand) -> PresenterTransition {
+        match command {
+            PresenterCommand::Configure {
+                visible,
+                layout,
+                theme,
+                ..
+            } => {
+                self.visible = visible;
+                self.layout = layout;
+                self.theme = theme;
+                PresenterTransition::Updated
+            }
+            PresenterCommand::Traffic { up, down, .. } => {
+                self.traffic = Some(TrafficSnapshot { up, down });
+                PresenterTransition::Updated
+            }
+            PresenterCommand::Shutdown { .. } => PresenterTransition::Shutdown,
+        }
+    }
+
+    pub fn upload_label(&self) -> String {
+        self.traffic
+            .map(|traffic| format!("↑ {}/s", format_rate(traffic.up)))
+            .unwrap_or_else(|| "↑ —".to_owned())
+    }
+
+    pub fn download_label(&self) -> String {
+        self.traffic
+            .map(|traffic| format!("↓ {}/s", format_rate(traffic.down)))
+            .unwrap_or_else(|| "↓ —".to_owned())
+    }
+
+    pub fn combined_label(&self) -> String {
+        let separator = match self.layout {
+            PresenterLayout::Horizontal => "  ",
+            PresenterLayout::Stacked => "\n",
+        };
+        format!(
+            "{}{}{}",
+            self.upload_label(),
+            separator,
+            self.download_label()
+        )
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -142,5 +223,38 @@ mod tests {
         assert_eq!(format_rate(100 * 1024), "100.0 KB");
         assert_eq!(format_rate(1023 * 1024), "1023 KB");
         assert_eq!(format_rate(1024 * 1024), "1.00 MB");
+    }
+
+    #[test]
+    fn applies_commands_to_shared_presenter_state() {
+        let mut state = PresenterState::default();
+        assert_eq!(state.upload_label(), "↑ —");
+
+        assert_eq!(
+            state.apply(PresenterCommand::Configure {
+                version: PROTOCOL_VERSION,
+                visible: true,
+                layout: PresenterLayout::Horizontal,
+                theme: PresenterTheme::Dark,
+            }),
+            PresenterTransition::Updated
+        );
+        assert_eq!(
+            state.apply(PresenterCommand::Traffic {
+                version: PROTOCOL_VERSION,
+                up: 1024,
+                down: 2048,
+            }),
+            PresenterTransition::Updated
+        );
+
+        assert!(state.visible);
+        assert_eq!(state.combined_label(), "↑ 1.00 KB/s  ↓ 2.00 KB/s");
+        assert_eq!(
+            state.apply(PresenterCommand::Shutdown {
+                version: PROTOCOL_VERSION,
+            }),
+            PresenterTransition::Shutdown
+        );
     }
 }
