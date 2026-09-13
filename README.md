@@ -83,6 +83,8 @@ does not expose arbitrary privileged command execution.
 The published package is documented in [`napi/README.md`](napi/README.md), its
 exact TypeScript contract is in [`napi/index.d.ts`](napi/index.d.ts), and the
 platform/security contract is in [`docs/platform-services.md`](docs/platform-services.md).
+The presenter transport and trust boundary are documented in
+[`docs/traffic-presenter.md`](docs/traffic-presenter.md).
 
 ```ts
 import {
