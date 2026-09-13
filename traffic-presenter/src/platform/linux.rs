@@ -12,11 +12,12 @@ struct LinuxPresenter {
 
 impl LinuxPresenter {
     fn new() -> Result<Self, Box<dyn std::error::Error>> {
+        // KSNI exposes the tray title as the tooltip title too. Keep the
+        // description empty so shells do not render the traffic label twice.
         let tray = TrayIconBuilder::new()
             .with_id("kokorobox-traffic")
             .with_icon(icon::status_icon()?)
             .with_title("↑ —  ↓ —")
-            .with_tooltip("KokoroBox traffic")
             .build()?;
         tray.set_visible(false)?;
         Ok(Self { tray })
@@ -29,7 +30,6 @@ impl PresenterBackend for LinuxPresenter {
     fn update(&mut self, state: PresenterState) -> Result<(), Self::Error> {
         let label = state.single_line_label();
         self.tray.set_title(Some(&label));
-        self.tray.set_tooltip(Some(&label))?;
         self.tray.set_visible(state.visible)
     }
 
