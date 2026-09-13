@@ -5,14 +5,40 @@ export interface FirewallRule {
 
 export interface NativeCapabilities {
   applicationInspection: boolean;
+  executableDiscovery: boolean;
   windowsApplicationScan: boolean;
   windowsAccount: boolean;
   windowsElevation: boolean;
   windowsFirewall: boolean;
   launchAtLogin: boolean;
   networkContext: boolean;
+  macosServiceManagement: boolean;
   coreFilePrivileges: boolean;
 }
+
+export interface ExecutableSearchOptions {
+  /** Safe executable basenames, without directory components. */
+  names: string[];
+  /** Absolute directories searched before PATH and platform-standard locations. */
+  additionalPaths?: string[];
+  /** Also match executable names beginning with a supplied name. */
+  matchNamePrefixes?: boolean;
+}
+
+export interface ExecutableCandidate {
+  /** The discovered path, which may be a symlink. */
+  path: string;
+  /** The canonical executable path used for deduplication. */
+  canonicalPath: string;
+  name: string;
+}
+
+export type MacOSManagedServiceStatus =
+  | "not-registered"
+  | "enabled"
+  | "requires-approval"
+  | "not-found"
+  | "unknown";
 
 export interface LaunchAtLoginOptions {
   /** Stable, filesystem-safe identifier, such as `com.amamiyakokoro.kokorobox`. */
@@ -109,12 +135,19 @@ export function fileToStr(
 ): RuleStringResult;
 export function getAppName(path: string): string;
 export function getNativeCapabilities(): NativeCapabilities;
+export function findExecutables(options: ExecutableSearchOptions): Promise<ExecutableCandidate[]>;
 export function getLaunchAtLogin(options: LaunchAtLoginOptions): Promise<LaunchAtLoginStatus>;
 export function setLaunchAtLogin(
   options: LaunchAtLoginOptions,
   enabled: boolean,
 ): Promise<LaunchAtLoginStatus>;
 export function getNetworkContext(): Promise<NetworkContext>;
+/** Query a LaunchDaemon plist embedded in the calling macOS application. */
+export function getMacosManagedServiceStatus(plistName: string): MacOSManagedServiceStatus;
+export function registerMacosManagedService(plistName: string): MacOSManagedServiceStatus;
+export function unregisterMacosManagedService(plistName: string): MacOSManagedServiceStatus;
+export function reloadMacosManagedService(plistName: string): MacOSManagedServiceStatus;
+export function openMacosLoginItemsSettings(): void;
 /** Inspect only validated `mihomo` and `mihomo-alpha` executable paths. */
 export function getCorePrivilegeStatus(paths: string[]): CorePrivilegeStatus[];
 /** Grant or revoke the constrained Unix core-file privilege. */

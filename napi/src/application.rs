@@ -6,12 +6,14 @@ use crate::error::map_err;
 #[napi(object)]
 pub struct JsNativeCapabilities {
     pub application_inspection: bool,
+    pub executable_discovery: bool,
     pub windows_application_scan: bool,
     pub windows_account: bool,
     pub windows_elevation: bool,
     pub windows_firewall: bool,
     pub launch_at_login: bool,
     pub network_context: bool,
+    pub macos_service_management: bool,
     pub core_file_privileges: bool,
 }
 
@@ -48,12 +50,14 @@ pub fn get_native_capabilities() -> JsNativeCapabilities {
     let capabilities = kokorobox_native::native_capabilities();
     JsNativeCapabilities {
         application_inspection: capabilities.application_inspection,
+        executable_discovery: capabilities.executable_discovery,
         windows_application_scan: capabilities.windows_application_scan,
         windows_account: capabilities.windows_account,
         windows_elevation: capabilities.windows_elevation,
         windows_firewall: capabilities.windows_firewall,
         launch_at_login: capabilities.launch_at_login,
         network_context: capabilities.network_context,
+        macos_service_management: capabilities.macos_service_management,
         core_file_privileges: capabilities.core_file_privileges,
     }
 }

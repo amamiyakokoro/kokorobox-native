@@ -25,6 +25,18 @@ SSID; discovery does not spawn PowerShell or parse localized command output.
 Missing data is omitted or returned as an empty list. Consumers must not treat
 an unavailable SSID as an empty SSID match.
 
+## Executable discovery
+
+`findExecutables()` searches caller-supplied absolute directories, `PATH`, and
+conventional system and per-user binary directories without invoking `which`,
+`where.exe`, a package manager, or a shell. Names must be safe basenames and
+prefix matching is opt-in. Results include both the discovered and canonical
+paths, are deterministic within each directory, and are deduplicated by the
+canonical target.
+
+Unix results must have at least one executable permission bit. Windows results
+must be `.exe` files; callers may omit that extension in requested names.
+
 ## Launch at login
 
 Windows stores the command in the current user's
@@ -37,6 +49,20 @@ macOS uses `SMAppService.mainApp` and Linux uses an XDG autostart entry. The
 macOS implementation does not invoke AppleScript or request Automation access.
 `requiresApproval` distinguishes an enabled registration that the user must
 approve in System Settings from an unregistered entry.
+
+## macOS managed services
+
+The managed-service API owns the lifecycle of a LaunchDaemon plist embedded in
+the signed application's `Contents/Library/LaunchDaemons` directory. Callers
+pass only a validated `.plist` basename; paths and arbitrary identifiers are
+rejected. Status, registration, unregistration, reload, and opening the Login
+Items settings panel use `SMAppService` directly and never invoke AppleScript or
+`launchctl`.
+
+Registration is idempotent for enabled and approval-pending services. A denied
+registration that leaves the daemon awaiting approval is returned as
+`requires-approval`, so callers can guide the user to System Settings instead of
+reporting a generic failure. This capability requires macOS 13 or later.
 
 ## Windows privilege relaunch
 

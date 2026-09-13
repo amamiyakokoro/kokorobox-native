@@ -36,9 +36,10 @@ The full TypeScript declarations are shipped in
 | --- | --- |
 | Capabilities | `getNativeCapabilities` |
 | Icons | `fileToDataUrl`, `getAppName` |
-| Applications | `inspectApplication`, `scanWindowsApplications` |
+| Applications | `inspectApplication`, `scanWindowsApplications`, `findExecutables` |
 | Rules | `fileToStr` |
 | Platform | `getLaunchAtLogin`, `setLaunchAtLogin`, `getNetworkContext` |
+| macOS service | `getMacosManagedServiceStatus`, `registerMacosManagedService`, `unregisterMacosManagedService`, `reloadMacosManagedService`, `openMacosLoginItemsSettings` |
 | Core permissions | `getCorePrivilegeStatus`, `setCorePrivileges` |
 | Windows | `getCurrentUserSid`, `isRunningAsAdmin`, `runElevated`, `launchElevated`, `launchUnelevated`, `setupFirewallRules` |
 
@@ -47,6 +48,11 @@ it to a routing identifier: an executable path on Windows and Linux, or a code
 signing identifier on macOS. `scanWindowsApplications` is asynchronous and
 Windows-only; it accepts an optional result limit and executable-name exclusion
 list.
+
+`findExecutables` asynchronously searches absolute additional directories,
+`PATH`, and platform-standard binary locations without spawning command-line
+tools. It returns canonical paths for stable deduplication; prefix matching is
+available only when explicitly requested.
 
 `fileToStr` converts a rule file and returns each generated output keyed by its
 behavior, metadata for those outputs, and rules that were skipped. Its optional
@@ -62,6 +68,11 @@ such as the default interface and SSID may be absent. macOS obtains this state
 directly from SystemConfiguration without parsing command output.
 Windows obtains the preferred interface and DNS servers from IP Helper and the
 SSID from Native Wi-Fi, without spawning PowerShell.
+
+The macOS managed-service functions accept the basename of an embedded
+LaunchDaemon plist and use `SMAppService` directly. They return an explicit
+`requires-approval` state when an administrator must approve the daemon in
+System Settings.
 
 Core-file privilege APIs are supported on macOS and Linux. They accept only
 canonical, existing executables named `mihomo` or `mihomo-alpha`; callers cannot

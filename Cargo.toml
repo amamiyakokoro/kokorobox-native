@@ -28,6 +28,9 @@ rule-converter = { git = "https://github.com/UruhaLushia/rule-converter.git", de
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = { version = "0.6.4", features = ["std"] }
+objc2-foundation = { version = "0.3.2", default-features = false, features = [
+    "NSString",
+] }
 objc2-service-management = { version = "0.3.2", default-features = false, features = [
     "std",
     "objc2",
