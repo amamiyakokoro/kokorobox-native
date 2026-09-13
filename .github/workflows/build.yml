@@ -32,7 +32,7 @@ jobs:
           - { os: windows-latest, target: aarch64-pc-windows-msvc }
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -190,7 +190,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         if: github.event_name == 'workflow_dispatch'
         with:
           ref: main
@@ -325,7 +325,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup Node
         uses: actions/setup-node@v6
