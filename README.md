@@ -19,6 +19,9 @@ and Windows account, elevation, Firewall, and application-scanning integrations.
 ```
 .
 ├── Cargo.toml              # Workspace and core Rust crate manifest
+├── docs/                   # Public platform and presenter contracts
+│   ├── platform-services.md # Platform APIs, validation, and security rules
+│   └── traffic-presenter.md # Presenter JSON-lines protocol and trust boundary
 ├── src/                    # Platform-neutral native library
 │   ├── lib.rs              # Public Rust API and capability declaration
 │   ├── application.rs      # Application inspection and Windows scanning
@@ -31,12 +34,16 @@ and Windows account, elevation, Firewall, and application-scanning integrations.
 │   ├── windows/            # Windows-only token, elevation, and Firewall code
 │   └── non_windows.rs      # Explicit unsupported-platform Windows stubs
 ├── traffic-presenter/      # Cross-platform per-user traffic status process
+│   ├── src/lib.rs          # Versioned protocol and presentation state
+│   ├── src/runtime.rs      # Standard-input command loop
+│   └── src/platform/       # Native Windows, macOS, and Linux presenters
 └── napi/                   # Published Node.js package and binding crate
     ├── Cargo.toml          # `cdylib` crate that depends on the core crate
     ├── src/                # Rust-to-JavaScript N-API exports and type mapping
     ├── index.js            # ESM loader for a local or platform package binary
     ├── index.d.ts          # Public TypeScript API
     ├── package.json        # npm metadata, targets, and build scripts
+    ├── package-presenters.mjs # Copies presenter sidecars into npm packages
     └── README.md           # Package-consumer documentation
 ```
 
@@ -44,6 +51,12 @@ The root crate owns the native behavior and has no Node.js-specific types. The
 `napi` crate is deliberately thin: it converts Rust values and errors to the
 public JavaScript API. Keep feature logic in `src/` and add the corresponding
 binding and declaration in `napi/src/` and `napi/index.d.ts`.
+
+`traffic-presenter` is a separate executable, not an N-API export. Desktop
+locates its platform-matched sidecar with `getTrafficPresenterPath()` and owns
+the process over standard input. Its wire protocol and the deliberate boundary
+between Desktop and the Mihomo controller live in
+[`docs/traffic-presenter.md`](docs/traffic-presenter.md).
 
 ## Platform contract
 
@@ -112,7 +125,7 @@ if (capabilities.launchAtLogin) {
 
 Prerequisites: a current Rust toolchain, Node.js 16 or later, and pnpm 11.
 
-Build the native module from the `napi` package:
+Build the N-API module from the `napi` package:
 
 ```sh
 cd napi
@@ -120,11 +133,23 @@ pnpm install
 pnpm build
 ```
 
-Run Rust formatting and lint checks from the repository root:
+Build the traffic presenter from the repository root:
+
+```sh
+cargo build --release -p kokorobox-traffic-presenter
+```
+
+Release packaging builds both artifacts for each target. Once N-API has
+generated its platform package directories, `pnpm package-presenters` copies
+the matching presenter executable into each package and records it in that
+package's npm manifest.
+
+Run Rust formatting, lint, and workspace tests from the repository root:
 
 ```sh
 cargo fmt --all --check
 cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace
 ```
 
 The loader resolves a matching local `.node` file first, then an optional
