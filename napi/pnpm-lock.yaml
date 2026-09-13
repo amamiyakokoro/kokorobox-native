@@ -22,8 +22,8 @@ importers:
         specifier: 0.1.0
         version: 0.1.0
       kokorobox-native-linux-x64-gnu:
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: 0.5.3
+        version: 0.5.3
       kokorobox-native-win32-arm64-msvc:
         specifier: 0.1.0
         version: 0.1.0
@@ -682,8 +682,8 @@ packages:
     os: [linux]
     libc: [glibc]
 
-  kokorobox-native-linux-x64-gnu@0.1.0:
-    resolution: {integrity: sha512-Xq3bGTQp3hoVHE/Ew+XDOl8cfW+IhdZBSE8PqwwQT1QZTRyTOIRkequQIWBI3AEUji7h79n9Ma7xLUcAsZCXuw==}
+  kokorobox-native-linux-x64-gnu@0.5.3:
+    resolution: {integrity: sha512-P8UiJW6ZRvr6ppBm6BeZGI5nJrob1tfR3EmwPtNQi1g6IqZtyGEk9z7xWenLo19hQc8TxZoPAIPAY4rh1Y1lOA==}
     engines: {node: '>=16'}
     cpu: [x64]
     os: [linux]
@@ -1246,7 +1246,7 @@ snapshots:
   kokorobox-native-linux-arm64-gnu@0.1.0:
     optional: true
 
-  kokorobox-native-linux-x64-gnu@0.1.0:
+  kokorobox-native-linux-x64-gnu@0.5.3:
     optional: true
 
   kokorobox-native-win32-arm64-msvc@0.1.0:
