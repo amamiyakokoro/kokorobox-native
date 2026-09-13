@@ -1206,7 +1206,7 @@ dependencies = [
 
 [[package]]
 name = "kokorobox-native"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "anyhow",
  "file-icon",
@@ -1220,7 +1220,7 @@ dependencies = [
 
 [[package]]
 name = "kokorobox-native-napi"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "kokorobox-native",
  "napi",
@@ -1230,7 +1230,7 @@ dependencies = [
 
 [[package]]
 name = "kokorobox-traffic-presenter"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "serde",
  "serde_json",
