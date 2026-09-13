@@ -36,7 +36,7 @@ The full TypeScript declarations are shipped in
 | --- | --- |
 | Capabilities | `getNativeCapabilities` |
 | Icons | `fileToDataUrl`, `getAppName` |
-| Applications | `inspectApplication`, `scanWindowsApplications` |
+| Applications | `inspectApplication`, `scanWindowsApplications`, `findExecutables` |
 | Rules | `fileToStr` |
 | Platform | `getLaunchAtLogin`, `setLaunchAtLogin`, `getNetworkContext` |
 | macOS service | `getMacosManagedServiceStatus`, `registerMacosManagedService`, `unregisterMacosManagedService`, `reloadMacosManagedService`, `openMacosLoginItemsSettings` |
@@ -48,6 +48,11 @@ it to a routing identifier: an executable path on Windows and Linux, or a code
 signing identifier on macOS. `scanWindowsApplications` is asynchronous and
 Windows-only; it accepts an optional result limit and executable-name exclusion
 list.
+
+`findExecutables` asynchronously searches absolute additional directories,
+`PATH`, and platform-standard binary locations without spawning command-line
+tools. It returns canonical paths for stable deduplication; prefix matching is
+available only when explicitly requested.
 
 `fileToStr` converts a rule file and returns each generated output keyed by its
 behavior, metadata for those outputs, and rules that were skipped. Its optional

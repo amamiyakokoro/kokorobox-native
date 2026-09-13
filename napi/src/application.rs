@@ -6,6 +6,7 @@ use crate::error::map_err;
 #[napi(object)]
 pub struct JsNativeCapabilities {
     pub application_inspection: bool,
+    pub executable_discovery: bool,
     pub windows_application_scan: bool,
     pub windows_account: bool,
     pub windows_elevation: bool,
@@ -49,6 +50,7 @@ pub fn get_native_capabilities() -> JsNativeCapabilities {
     let capabilities = kokorobox_native::native_capabilities();
     JsNativeCapabilities {
         application_inspection: capabilities.application_inspection,
+        executable_discovery: capabilities.executable_discovery,
         windows_application_scan: capabilities.windows_application_scan,
         windows_account: capabilities.windows_account,
         windows_elevation: capabilities.windows_elevation,

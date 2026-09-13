@@ -5,10 +5,10 @@ KokoroBox Desktop access to operating-system features that are not practical to
 provide in JavaScript alone. It is published as a small JavaScript loader plus
 prebuilt, platform-specific native packages.
 
-It provides file and application icon helpers, application inspection, rule-set
-conversion, launch-at-login, macOS managed-service and network-context helpers,
-constrained Unix core permissions, and Windows account, elevation, Firewall, and
-application-scanning integrations.
+It provides file and application icon helpers, application inspection,
+shell-free executable discovery, rule-set conversion, launch-at-login, macOS
+managed-service and network-context helpers, constrained Unix core permissions,
+and Windows account, elevation, Firewall, and application-scanning integrations.
 
 ## Repository structure
 
@@ -18,6 +18,7 @@ application-scanning integrations.
 ├── src/                    # Platform-neutral native library
 │   ├── lib.rs              # Public Rust API and capability declaration
 │   ├── application.rs      # Application inspection and Windows scanning
+│   ├── executables.rs      # Shell-free cross-platform executable discovery
 │   ├── icons.rs            # Icon data URLs and display-name lookup
 │   ├── macos_service.rs    # Embedded LaunchDaemon lifecycle management
 │   ├── platform.rs         # Login-item and network-context implementations

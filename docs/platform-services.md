@@ -25,6 +25,18 @@ SSID; discovery does not spawn PowerShell or parse localized command output.
 Missing data is omitted or returned as an empty list. Consumers must not treat
 an unavailable SSID as an empty SSID match.
 
+## Executable discovery
+
+`findExecutables()` searches caller-supplied absolute directories, `PATH`, and
+conventional system and per-user binary directories without invoking `which`,
+`where.exe`, a package manager, or a shell. Names must be safe basenames and
+prefix matching is opt-in. Results include both the discovered and canonical
+paths, are deterministic within each directory, and are deduplicated by the
+canonical target.
+
+Unix results must have at least one executable permission bit. Windows results
+must be `.exe` files; callers may omit that extension in requested names.
+
 ## Launch at login
 
 Windows stores the command in the current user's

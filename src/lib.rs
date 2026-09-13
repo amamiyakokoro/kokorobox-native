@@ -1,6 +1,7 @@
 #![deny(clippy::all)]
 
 mod application;
+mod executables;
 mod icons;
 mod macos_service;
 mod platform;
@@ -15,6 +16,7 @@ mod windows;
 pub use application::{
     ApplicationInfo, ApplicationScanResult, inspect_application, scan_windows_applications,
 };
+pub use executables::{ExecutableCandidate, ExecutableSearchOptions, find_executables};
 pub use icons::{file_to_data_url, get_app_name};
 pub use macos_service::{
     MacOSManagedServiceStatus, get_macos_managed_service_status, open_macos_login_items_settings,
@@ -48,6 +50,7 @@ pub struct FirewallRule {
 #[derive(Debug, Clone, Copy)]
 pub struct NativeCapabilities {
     pub application_inspection: bool,
+    pub executable_discovery: bool,
     pub windows_application_scan: bool,
     pub windows_account: bool,
     pub windows_elevation: bool,
@@ -61,6 +64,7 @@ pub struct NativeCapabilities {
 pub fn native_capabilities() -> NativeCapabilities {
     NativeCapabilities {
         application_inspection: true,
+        executable_discovery: true,
         windows_application_scan: cfg!(target_os = "windows"),
         windows_account: cfg!(target_os = "windows"),
         windows_elevation: cfg!(target_os = "windows"),

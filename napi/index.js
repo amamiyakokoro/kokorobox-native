@@ -81,6 +81,7 @@ export const fileToDataUrl = nativeBinding.fileToDataUrl;
 export const fileToStr = nativeBinding.fileToStr;
 export const getAppName = nativeBinding.getAppName;
 export const getNativeCapabilities = nativeBinding.getNativeCapabilities;
+export const findExecutables = nativeBinding.findExecutables;
 export const getLaunchAtLogin = nativeBinding.getLaunchAtLogin;
 export const setLaunchAtLogin = nativeBinding.setLaunchAtLogin;
 export const getNetworkContext = nativeBinding.getNetworkContext;

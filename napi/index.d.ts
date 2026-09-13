@@ -5,6 +5,7 @@ export interface FirewallRule {
 
 export interface NativeCapabilities {
   applicationInspection: boolean;
+  executableDiscovery: boolean;
   windowsApplicationScan: boolean;
   windowsAccount: boolean;
   windowsElevation: boolean;
@@ -13,6 +14,23 @@ export interface NativeCapabilities {
   networkContext: boolean;
   macosServiceManagement: boolean;
   coreFilePrivileges: boolean;
+}
+
+export interface ExecutableSearchOptions {
+  /** Safe executable basenames, without directory components. */
+  names: string[];
+  /** Absolute directories searched before PATH and platform-standard locations. */
+  additionalPaths?: string[];
+  /** Also match executable names beginning with a supplied name. */
+  matchNamePrefixes?: boolean;
+}
+
+export interface ExecutableCandidate {
+  /** The discovered path, which may be a symlink. */
+  path: string;
+  /** The canonical executable path used for deduplication. */
+  canonicalPath: string;
+  name: string;
 }
 
 export type MacOSManagedServiceStatus =
@@ -117,6 +135,7 @@ export function fileToStr(
 ): RuleStringResult;
 export function getAppName(path: string): string;
 export function getNativeCapabilities(): NativeCapabilities;
+export function findExecutables(options: ExecutableSearchOptions): Promise<ExecutableCandidate[]>;
 export function getLaunchAtLogin(options: LaunchAtLoginOptions): Promise<LaunchAtLoginStatus>;
 export function setLaunchAtLogin(
   options: LaunchAtLoginOptions,
