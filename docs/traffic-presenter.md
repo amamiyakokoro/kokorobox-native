@@ -26,7 +26,9 @@ reject unknown fields and unsupported protocol versions instead of guessing.
 
 The current platform presentation is:
 
-- Windows: a non-activating child window adjacent to the notification area.
+- Windows: a transparent, non-activating popup attached adjacent to the notification area. The
+  popup is reattached after Explorer recreates the taskbar and falls back to a topmost overlay if
+  the taskbar temporarily rejects attachment.
 - macOS: an `NSStatusItem`-backed menu-bar title.
 - Linux: a StatusNotifierItem using the KSNI D-Bus backend.
 

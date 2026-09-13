@@ -2,7 +2,7 @@ use kokorobox_traffic_presenter::{
     PresenterCommand, PresenterLayout, PresenterState, PresenterTransition, parse_command,
 };
 use std::io::{self, BufRead};
-use std::sync::atomic::{AtomicIsize, AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicIsize, AtomicU32, Ordering};
 use std::sync::{Mutex, OnceLock};
 use windows::Win32::Foundation::{
     CloseHandle, ERROR_ALREADY_EXISTS, GetLastError, HWND, LPARAM, LRESULT, RECT, WPARAM,
@@ -17,11 +17,13 @@ use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::System::Threading::CreateMutexW;
 use windows::Win32::UI::WindowsAndMessaging::{
     CS_HREDRAW, CS_VREDRAW, CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW,
-    FindWindowExW, FindWindowW, GetClientRect, GetMessageW, HWND_TOP, IsWindow, MSG, PostMessageW,
-    PostQuitMessage, RegisterClassW, RegisterWindowMessageW, SW_HIDE, SW_SHOWNOACTIVATE,
-    SWP_NOACTIVATE, SetTimer, SetWindowPos, ShowWindow, TranslateMessage, WINDOW_EX_STYLE, WM_APP,
+    FindWindowExW, FindWindowW, GetClientRect, GetMessageW, GetParent, HWND_TOP, HWND_TOPMOST,
+    IsWindow, LWA_COLORKEY, MSG, PostMessageW, PostQuitMessage, RegisterClassW,
+    RegisterWindowMessageW, SW_HIDE, SW_SHOWNOACTIVATE, SWP_NOACTIVATE, SetLayeredWindowAttributes,
+    SetParent, SetTimer, SetWindowPos, ShowWindow, TranslateMessage, WINDOW_EX_STYLE, WM_APP,
     WM_CLOSE, WM_DESTROY, WM_DISPLAYCHANGE, WM_ERASEBKGND, WM_PAINT, WM_SETTINGCHANGE, WM_TIMER,
-    WNDCLASSW, WS_CHILD, WS_CLIPSIBLINGS, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_OVERLAPPED,
+    WNDCLASSW, WS_CLIPSIBLINGS, WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_OVERLAPPED,
+    WS_POPUP,
 };
 use windows::core::{PCWSTR, w};
 
@@ -32,6 +34,8 @@ static STATE: OnceLock<Mutex<PresenterState>> = OnceLock::new();
 static CONTROLLER_WINDOW: AtomicIsize = AtomicIsize::new(0);
 static PRESENTER_WINDOW: AtomicIsize = AtomicIsize::new(0);
 static TASKBAR_CREATED: AtomicU32 = AtomicU32::new(0);
+static ATTACHMENT_FAILURE_REPORTED: AtomicBool = AtomicBool::new(false);
+static PRESENTER_FAILURE_REPORTED: AtomicBool = AtomicBool::new(false);
 
 fn hwnd_from_atomic(value: &AtomicIsize) -> Option<HWND> {
     let raw = value.load(Ordering::Acquire);
@@ -53,15 +57,13 @@ unsafe extern "system" fn window_proc(
 ) -> LRESULT {
     let taskbar_created = TASKBAR_CREATED.load(Ordering::Relaxed);
     if taskbar_created != 0 && message == taskbar_created {
-        // SAFETY: This callback runs on the presenter UI thread.
-        let _ = unsafe { ensure_presenter_window() };
+        refresh_presenter();
         return LRESULT(0);
     }
 
     match message {
         WM_PRESENTER_UPDATE | WM_DISPLAYCHANGE | WM_SETTINGCHANGE | WM_TIMER => {
-            // SAFETY: This callback runs on the presenter UI thread.
-            let _ = unsafe { ensure_presenter_window() };
+            refresh_presenter();
             LRESULT(0)
         }
         WM_PAINT => {
@@ -91,6 +93,20 @@ unsafe extern "system" fn window_proc(
     }
 }
 
+fn refresh_presenter() {
+    // SAFETY: Every caller runs on the presenter UI thread.
+    match unsafe { ensure_presenter_window() } {
+        Ok(()) => {
+            PRESENTER_FAILURE_REPORTED.store(false, Ordering::Release);
+        }
+        Err(error) => {
+            if !PRESENTER_FAILURE_REPORTED.swap(true, Ordering::AcqRel) {
+                eprintln!("kokorobox-traffic-presenter: update taskbar window: {error}");
+            }
+        }
+    }
+}
+
 unsafe fn ensure_presenter_window() -> windows::core::Result<()> {
     let taskbar = unsafe { FindWindowW(w!("Shell_TrayWnd"), PCWSTR::null()) }?;
     let presenter = match hwnd_from_atomic(&PRESENTER_WINDOW) {
@@ -99,26 +115,45 @@ unsafe fn ensure_presenter_window() -> windows::core::Result<()> {
             let instance = unsafe { GetModuleHandleW(None) }?;
             let window = unsafe {
                 CreateWindowExW(
-                    WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE,
+                    WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_LAYERED,
                     w!("KokoroBoxTrafficPresenter"),
                     w!("KokoroBox traffic"),
-                    WS_CHILD | WS_CLIPSIBLINGS,
+                    WS_POPUP | WS_CLIPSIBLINGS,
                     0,
                     0,
                     0,
                     0,
-                    Some(taskbar),
+                    None,
                     None,
                     Some(instance.into()),
                     None,
                 )
             }?;
+            unsafe {
+                SetLayeredWindowAttributes(
+                    window,
+                    windows::Win32::Foundation::COLORREF(GetSysColor(COLOR_WINDOW)),
+                    255,
+                    LWA_COLORKEY,
+                )?;
+            }
             store_hwnd(&PRESENTER_WINDOW, Some(window));
             window
         }
     };
 
-    position_presenter(taskbar, presenter)?;
+    let attached = unsafe { attach_presenter_to_taskbar(presenter, taskbar) };
+    if attached {
+        ATTACHMENT_FAILURE_REPORTED.store(false, Ordering::Release);
+    } else {
+        if !ATTACHMENT_FAILURE_REPORTED.swap(true, Ordering::AcqRel) {
+            eprintln!(
+                "kokorobox-traffic-presenter: could not attach to the taskbar; using top-level fallback"
+            );
+        }
+    }
+
+    position_presenter(taskbar, presenter, attached)?;
     let state = *STATE
         .get_or_init(|| Mutex::new(PresenterState::default()))
         .lock()
@@ -137,7 +172,19 @@ unsafe fn ensure_presenter_window() -> windows::core::Result<()> {
     Ok(())
 }
 
-fn position_presenter(taskbar: HWND, presenter: HWND) -> windows::core::Result<()> {
+unsafe fn attach_presenter_to_taskbar(presenter: HWND, taskbar: HWND) -> bool {
+    if unsafe { GetParent(presenter) }.ok() == Some(taskbar) {
+        return true;
+    }
+
+    // SetParent reports the previous parent. The generated Windows binding may therefore return
+    // an error when a parentless popup is attached successfully, so verify the resulting HWND
+    // relationship instead of trusting its return value.
+    let _ = unsafe { SetParent(presenter, Some(taskbar)) };
+    unsafe { GetParent(presenter) }.ok() == Some(taskbar)
+}
+
+fn position_presenter(taskbar: HWND, presenter: HWND, attached: bool) -> windows::core::Result<()> {
     let mut taskbar_rect = RECT::default();
     // SAFETY: Both handles refer to live windows on this UI thread.
     unsafe { windows::Win32::UI::WindowsAndMessaging::GetWindowRect(taskbar, &mut taskbar_rect) }?;
@@ -162,7 +209,7 @@ fn position_presenter(taskbar: HWND, presenter: HWND) -> windows::core::Result<(
         })
         .is_ok();
 
-    let (x, y, width, height) = if horizontal {
+    let (mut x, mut y, width, height) = if horizontal {
         let x = if has_tray_rect {
             tray_rect.left - taskbar_rect.left - desired_width - 4
         } else {
@@ -184,10 +231,15 @@ fn position_presenter(taskbar: HWND, presenter: HWND) -> windows::core::Result<(
         (0, y.max(0), taskbar_width, desired_height)
     };
 
+    if !attached {
+        x += taskbar_rect.left;
+        y += taskbar_rect.top;
+    }
+
     unsafe {
         SetWindowPos(
             presenter,
-            Some(HWND_TOP),
+            Some(if attached { HWND_TOP } else { HWND_TOPMOST }),
             x,
             y,
             width,
@@ -322,7 +374,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     }?;
     store_hwnd(&CONTROLLER_WINDOW, Some(controller));
     unsafe { SetTimer(Some(controller), RETRY_TIMER_ID, 2_000, None) };
-    let _ = unsafe { ensure_presenter_window() };
+    refresh_presenter();
 
     std::thread::spawn(|| {
         for line in io::stdin().lock().lines() {
