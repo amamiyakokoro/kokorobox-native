@@ -14,6 +14,7 @@ pub struct JsLaunchAtLoginOptions {
 #[napi(object)]
 pub struct JsLaunchAtLoginStatus {
     pub enabled: bool,
+    pub requires_approval: bool,
     pub backend: String,
 }
 
@@ -40,6 +41,7 @@ impl From<kokorobox_native::LaunchAtLoginStatus> for JsLaunchAtLoginStatus {
     fn from(value: kokorobox_native::LaunchAtLoginStatus) -> Self {
         Self {
             enabled: value.enabled,
+            requires_approval: value.requires_approval,
             backend: value.backend,
         }
     }

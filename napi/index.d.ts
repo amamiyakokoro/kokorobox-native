@@ -24,7 +24,9 @@ export interface LaunchAtLoginOptions {
 
 export interface LaunchAtLoginStatus {
   enabled: boolean;
-  backend: "windows-task-scheduler" | "macos-login-item" | "linux-xdg-autostart";
+  /** The entry is registered but macOS requires approval in System Settings. */
+  requiresApproval: boolean;
+  backend: "windows-current-user-run" | "macos-sm-app-service" | "linux-xdg-autostart";
 }
 
 /** Best-effort active-network state. Unavailable fields are omitted instead of guessed. */
