@@ -258,7 +258,7 @@ jobs:
 
       - name: Tag Repo
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.version != ''
-        uses: richardsimko/update-tag@v1
+        uses: richardsimko/update-tag@v3
         with:
           tag_name: ${{ github.event.inputs.version }}
         env:
@@ -277,7 +277,7 @@ jobs:
           deleteOnlyFromDrafts: false
 
       - name: Tag Repo
-        uses: richardsimko/update-tag@v1
+        uses: richardsimko/update-tag@v3
         with:
           tag_name: pre-release
         env:
