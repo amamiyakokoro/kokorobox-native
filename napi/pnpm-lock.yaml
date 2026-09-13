@@ -13,23 +13,23 @@ importers:
         version: 3.9.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
     optionalDependencies:
       kokorobox-native-darwin-arm64:
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: 0.8.2
+        version: 0.8.2
       kokorobox-native-darwin-x64:
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: 0.8.2
+        version: 0.8.2
       kokorobox-native-linux-arm64-gnu:
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: 0.8.2
+        version: 0.8.2
       kokorobox-native-linux-x64-gnu:
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: 0.8.2
+        version: 0.8.2
       kokorobox-native-win32-arm64-msvc:
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: 0.8.2
+        version: 0.8.2
       kokorobox-native-win32-x64-msvc:
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: 0.8.2
+        version: 0.8.2
 
 packages:
 
@@ -663,40 +663,40 @@ packages:
   json-with-bigint@3.5.12:
     resolution: {integrity: sha512-uwbF/wSSuOgC7qqlq27Xp5B6a2MHVug3t0idZdTqu0JnlFvgJuH7ju+KAk/J06C7GfhoYy2gnb9wz2INqcne7w==}
 
-  kokorobox-native-darwin-arm64@0.1.0:
-    resolution: {integrity: sha512-VrQFaOias3pDnDaTSU50tDqPrbxvTpZ+LAeCWN1fRrntAFAuag/NMfN6/OZqODbNzkgUp3cG7JU9Oy7UCXpMKA==}
+  kokorobox-native-darwin-arm64@0.8.2:
+    resolution: {integrity: sha512-J1iy3qx7HBZSxCYOsNUsUaukZDlOfQkECsXGW00Oiaso+rt05AxVewECL2LOZaPdcXEG+/8vY2QjuAh2+AcqNg==}
     engines: {node: '>=16'}
     cpu: [arm64]
     os: [darwin]
 
-  kokorobox-native-darwin-x64@0.1.0:
-    resolution: {integrity: sha512-50lWa3lwhIOEnE/iwYpAQ6Z7uiO5LqkcKBdFfJjvxjaBBgDceoncLW+ix3+l2eVkOgNlyAFp7hX3Ykb2+i4Pzw==}
+  kokorobox-native-darwin-x64@0.8.2:
+    resolution: {integrity: sha512-n03VyjPnarRlxeRNfdFAILiAN53Dodu/vasRP+31xCjU0aDelSwiHyIw+TlkPl/XmiBtvjQtxjYyEHtSNLlXQA==}
     engines: {node: '>=16'}
     cpu: [x64]
     os: [darwin]
 
-  kokorobox-native-linux-arm64-gnu@0.1.0:
-    resolution: {integrity: sha512-Ck5dQeeMwFbAT7gV6VTpDRUzyUwxFr12R04BHGzTfV8LlEksD+0kFGwO/4GYqk2riwvJDy2y6ewtFxQREaRHVw==}
+  kokorobox-native-linux-arm64-gnu@0.8.2:
+    resolution: {integrity: sha512-An1l0r86NJNXVB40jBr0zSoXAtqCbk/NY+HqxUJ53fPqHU7Fzlma/hp3LoGrQD+Y1J/Daieztue3tLB+rF0KBA==}
     engines: {node: '>=16'}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  kokorobox-native-linux-x64-gnu@0.1.0:
-    resolution: {integrity: sha512-Xq3bGTQp3hoVHE/Ew+XDOl8cfW+IhdZBSE8PqwwQT1QZTRyTOIRkequQIWBI3AEUji7h79n9Ma7xLUcAsZCXuw==}
+  kokorobox-native-linux-x64-gnu@0.8.2:
+    resolution: {integrity: sha512-6/X5FhdbovcZAjnVEX/umHXWfX2xHKtTENUPkcQA2h/zAjunv8uk2IXg+gHef3vDjLzY+MBvqBviOZIOdPOzEA==}
     engines: {node: '>=16'}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  kokorobox-native-win32-arm64-msvc@0.1.0:
-    resolution: {integrity: sha512-ROtNbJ0BIBLydb0yBgboHf2bFAxf8KCdnkJiI0j59/nN1ouHtfAo2pj5TzcMXH/HUp8QOT3U5BAl3IRqfswZDg==}
+  kokorobox-native-win32-arm64-msvc@0.8.2:
+    resolution: {integrity: sha512-OyLHb0RQUHblwBPnQn9EJzYbcmDq2bP0iqPwXQkn3te3pGBPmdrtjyYhe8nGHh2dl+wNsNsDSZFSuJ7fYZU4Mw==}
     engines: {node: '>=16'}
     cpu: [arm64]
     os: [win32]
 
-  kokorobox-native-win32-x64-msvc@0.1.0:
-    resolution: {integrity: sha512-ywUbWGy3Hl+/5b/osMgvuLGnWzAebU9iHlBpv1FabNvZTjKP0yAbFZzB06J1mHDeebfKZsyuBqaUla22laPrHQ==}
+  kokorobox-native-win32-x64-msvc@0.8.2:
+    resolution: {integrity: sha512-IRejURPs810NmtGhG5RG81dWFhfJQTeyl7DbgJbGbrGcEkEup7HpNpMYEkLHcTD9bSo8wBYmSvVuMOQqFB7GQg==}
     engines: {node: '>=16'}
     cpu: [x64]
     os: [win32]
@@ -1237,22 +1237,22 @@ snapshots:
 
   json-with-bigint@3.5.12: {}
 
-  kokorobox-native-darwin-arm64@0.1.0:
+  kokorobox-native-darwin-arm64@0.8.2:
     optional: true
 
-  kokorobox-native-darwin-x64@0.1.0:
+  kokorobox-native-darwin-x64@0.8.2:
     optional: true
 
-  kokorobox-native-linux-arm64-gnu@0.1.0:
+  kokorobox-native-linux-arm64-gnu@0.8.2:
     optional: true
 
-  kokorobox-native-linux-x64-gnu@0.1.0:
+  kokorobox-native-linux-x64-gnu@0.8.2:
     optional: true
 
-  kokorobox-native-win32-arm64-msvc@0.1.0:
+  kokorobox-native-win32-arm64-msvc@0.8.2:
     optional: true
 
-  kokorobox-native-win32-x64-msvc@0.1.0:
+  kokorobox-native-win32-x64-msvc@0.8.2:
     optional: true
 
   ms@2.1.3: {}

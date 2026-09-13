@@ -11,6 +11,9 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    # Platform packages are released as an exact, matching set with the loader.
+    ignore:
+      - dependency-name: "kokorobox-native-*"
 
   - package-ecosystem: github-actions
     directory: /
