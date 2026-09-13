@@ -342,7 +342,7 @@ dependencies = [
 
 [[package]]
 name = "kokorobox-native"
-version = "0.5.5"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "file-icon",
@@ -355,7 +355,7 @@ dependencies = [
 
 [[package]]
 name = "kokorobox-native-napi"
-version = "0.5.5"
+version = "0.6.0"
 dependencies = [
  "kokorobox-native",
  "napi",
