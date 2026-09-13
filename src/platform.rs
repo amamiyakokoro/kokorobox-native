@@ -205,13 +205,15 @@ fn mac_main_app_service(
 fn platform_get_launch_at_login(options: &LaunchAtLoginOptions) -> Result<LaunchAtLoginStatus> {
     use objc2_service_management::SMAppServiceStatus;
 
-    let service = mac_main_app_service(options)?;
-    // SAFETY: The retained service remains alive for the status query.
-    let status = unsafe { service.status() };
-    Ok(LaunchAtLoginStatus {
-        enabled: status == SMAppServiceStatus::Enabled,
-        requires_approval: status == SMAppServiceStatus::RequiresApproval,
-        backend: "macos-sm-app-service".to_string(),
+    objc2::rc::autoreleasepool(|_| {
+        let service = mac_main_app_service(options)?;
+        // SAFETY: The retained service remains alive for the status query.
+        let status = unsafe { service.status() };
+        Ok(LaunchAtLoginStatus {
+            enabled: status == SMAppServiceStatus::Enabled,
+            requires_approval: status == SMAppServiceStatus::RequiresApproval,
+            backend: "macos-sm-app-service".to_string(),
+        })
     })
 }
 
@@ -219,28 +221,32 @@ fn platform_get_launch_at_login(options: &LaunchAtLoginOptions) -> Result<Launch
 fn platform_set_launch_at_login(options: &LaunchAtLoginOptions, enabled: bool) -> Result<()> {
     use objc2_service_management::SMAppServiceStatus;
 
-    let service = mac_main_app_service(options)?;
-    // SAFETY: The retained service remains alive for the operation.
-    let status = unsafe { service.status() };
-    if enabled {
-        if matches!(
-            status,
-            SMAppServiceStatus::NotRegistered | SMAppServiceStatus::NotFound
-        ) {
+    objc2::rc::autoreleasepool(|_| {
+        let service = mac_main_app_service(options)?;
+        // SAFETY: The retained service remains alive for the operation.
+        let status = unsafe { service.status() };
+        if enabled
+            && matches!(
+                status,
+                SMAppServiceStatus::NotRegistered | SMAppServiceStatus::NotFound
+            )
+        {
             // SAFETY: The call is made on the main-app service owned by the
             // current signed application bundle.
             unsafe { service.registerAndReturnError() }
                 .map_err(|error| anyhow!("Unable to register launch at login: {error}"))?;
+        } else if !enabled
+            && !matches!(
+                status,
+                SMAppServiceStatus::NotRegistered | SMAppServiceStatus::NotFound
+            )
+        {
+            // SAFETY: The call is made on the retained main-app service.
+            unsafe { service.unregisterAndReturnError() }
+                .map_err(|error| anyhow!("Unable to unregister launch at login: {error}"))?;
         }
-    } else if !matches!(
-        status,
-        SMAppServiceStatus::NotRegistered | SMAppServiceStatus::NotFound
-    ) {
-        // SAFETY: The call is made on the retained main-app service.
-        unsafe { service.unregisterAndReturnError() }
-            .map_err(|error| anyhow!("Unable to unregister launch at login: {error}"))?;
-    }
-    Ok(())
+        Ok(())
+    })
 }
 
 #[cfg(target_os = "windows")]
