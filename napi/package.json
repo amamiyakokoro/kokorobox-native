@@ -35,7 +35,8 @@
     "build": "napi build --platform --release --strip --no-js --dts napi.generated.d.ts",
     "build:debug": "napi build --platform --no-js --dts napi.generated.d.ts",
     "create-npm-dirs": "napi create-npm-dirs",
-    "artifacts": "napi artifacts"
+    "artifacts": "napi artifacts",
+    "package-presenters": "node package-presenters.mjs"
   },
   "devDependencies": {
     "@napi-rs/cli": "^3.8.6"

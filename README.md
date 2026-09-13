@@ -5,6 +5,10 @@ KokoroBox Desktop access to operating-system features that are not practical to
 provide in JavaScript alone. It is published as a small JavaScript loader plus
 prebuilt, platform-specific native packages.
 
+Those platform packages also contain a per-user traffic presenter. Desktop
+owns its lifetime and sends versioned numeric traffic snapshots over standard
+input; the presenter never connects to Mihomo or handles controller secrets.
+
 It provides file and application icon helpers, application inspection,
 shell-free executable discovery, rule-set conversion, launch-at-login, macOS
 managed-service and network-context helpers, constrained Unix core permissions,
@@ -26,6 +30,7 @@ and Windows account, elevation, Firewall, and application-scanning integrations.
 │   ├── rules.rs            # Rule-file conversion facade
 │   ├── windows/            # Windows-only token, elevation, and Firewall code
 │   └── non_windows.rs      # Explicit unsupported-platform Windows stubs
+├── traffic-presenter/      # Cross-platform per-user traffic status process
 └── napi/                   # Published Node.js package and binding crate
     ├── Cargo.toml          # `cdylib` crate that depends on the core crate
     ├── src/                # Rust-to-JavaScript N-API exports and type mapping
