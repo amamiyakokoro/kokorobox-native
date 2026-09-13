@@ -1,7 +1,9 @@
-use std::{path::Path, process::Command};
+use std::path::Path;
 
 #[cfg(target_os = "linux")]
 use std::path::PathBuf;
+#[cfg(any(target_os = "linux", target_os = "windows"))]
+use std::process::Command;
 #[cfg(target_os = "linux")]
 use std::{env, fs};
 #[cfg(target_os = "windows")]
@@ -90,6 +92,7 @@ pub fn get_network_context() -> Result<NetworkContext> {
     Ok(platform_network_context())
 }
 
+#[cfg(any(target_os = "linux", target_os = "windows"))]
 fn command_output(program: &str, arguments: &[&str]) -> Option<String> {
     let output = Command::new(program).args(arguments).output().ok()?;
     if !output.status.success() {
@@ -603,107 +606,220 @@ fn platform_network_context() -> NetworkContext {
 }
 
 #[cfg(target_os = "macos")]
-fn mac_default_service(device: &str) -> Option<String> {
-    let order = command_output("/usr/sbin/networksetup", &["-listnetworkserviceorder"])
-        .or_else(|| command_output("networksetup", &["-listnetworkserviceorder"]))?;
-    parse_mac_default_service(&order, device)
+fn mac_dictionary(
+    store: &system_configuration::dynamic_store::SCDynamicStore,
+    key: &str,
+) -> Option<system_configuration::core_foundation::dictionary::CFDictionary> {
+    use system_configuration::core_foundation::propertylist::CFPropertyList;
+
+    store.get(key).and_then(
+        CFPropertyList::downcast_into::<
+            system_configuration::core_foundation::dictionary::CFDictionary,
+        >,
+    )
 }
 
 #[cfg(target_os = "macos")]
-fn parse_mac_default_service(order: &str, device: &str) -> Option<String> {
-    let mut service = None;
-    for line in order.lines() {
-        let trimmed = line.trim();
-        if let Some((index, value)) = trimmed
-            .strip_prefix('(')
-            .and_then(|value| value.split_once(')'))
-            && !index.is_empty()
-            && index.chars().all(|character| character.is_ascii_digit())
-            && !value.trim().is_empty()
-        {
-            service = Some(value.trim().to_string());
-        }
-        if line.contains(&format!("Device: {device}")) {
-            return service;
-        }
-    }
-    None
+fn mac_dictionary_string(
+    dictionary: &system_configuration::core_foundation::dictionary::CFDictionary,
+    key: &str,
+) -> Option<String> {
+    use system_configuration::core_foundation::{
+        base::{CFType, TCFType, ToVoid},
+        string::CFString,
+    };
+
+    let key = CFString::new(key);
+    dictionary
+        .find(key.to_void())
+        .map(|pointer| unsafe { CFType::wrap_under_get_rule(*pointer) })
+        .and_then(CFType::downcast_into::<CFString>)
+        .map(|value| value.to_string())
+        .filter(|value| !value.is_empty())
 }
 
 #[cfg(target_os = "macos")]
-fn platform_default_interface() -> Option<String> {
-    command_output("/sbin/route", &["-n", "get", "default"])
-        .or_else(|| command_output("route", &["-n", "get", "default"]))?
-        .lines()
-        .find_map(|line| {
-            line.trim()
-                .strip_prefix("interface:")
-                .map(|value| value.trim().to_string())
+fn mac_dictionary_strings(
+    dictionary: &system_configuration::core_foundation::dictionary::CFDictionary,
+    key: &str,
+) -> Vec<String> {
+    use system_configuration::core_foundation::{
+        array::CFArray,
+        base::{CFType, TCFType, ToVoid},
+        string::CFString,
+    };
+
+    let key = CFString::new(key);
+    let Some(values) = dictionary
+        .find(key.to_void())
+        .map(|pointer| unsafe { CFType::wrap_under_get_rule(*pointer) })
+        .and_then(CFType::downcast_into::<CFArray>)
+    else {
+        return Vec::new();
+    };
+
+    let mut result = values
+        .iter()
+        .filter_map(|pointer| {
+            unsafe { CFType::wrap_under_get_rule(*pointer) }
+                .downcast_into::<CFString>()
+                .map(|value| value.to_string())
         })
+        .filter(|value| value.parse::<std::net::IpAddr>().is_ok())
+        .collect::<Vec<_>>();
+    result.sort();
+    result.dedup();
+    result
 }
 
 #[cfg(target_os = "macos")]
-fn mac_dns_servers(service: &str) -> Vec<String> {
-    command_output("/usr/sbin/networksetup", &["-getdnsservers", service])
-        .or_else(|| command_output("networksetup", &["-getdnsservers", service]))
-        .filter(|output| !output.starts_with("There aren't any DNS Servers set on"))
-        .map(|output| {
-            output
-                .lines()
-                .map(str::trim)
-                .filter(|line| !line.is_empty())
-                .map(ToOwned::to_owned)
-                .collect()
+fn mac_primary_network(
+    store: &system_configuration::dynamic_store::SCDynamicStore,
+) -> (Option<String>, Option<String>) {
+    ["State:/Network/Global/IPv4", "State:/Network/Global/IPv6"]
+        .into_iter()
+        .find_map(|key| {
+            let dictionary = mac_dictionary(store, key)?;
+            let interface = mac_dictionary_string(&dictionary, "PrimaryInterface");
+            let service = mac_dictionary_string(&dictionary, "PrimaryService");
+            (interface.is_some() || service.is_some()).then_some((interface, service))
         })
         .unwrap_or_default()
 }
 
-#[cfg(target_os = "macos")]
-fn mac_ssid(service: &str) -> Option<String> {
-    command_output("/usr/sbin/networksetup", &["-getairportnetwork", service])
-        .or_else(|| command_output("networksetup", &["-getairportnetwork", service]))?
-        .split_once(':')
-        .map(|(_, ssid)| ssid.trim().to_string())
-        .filter(|ssid| !ssid.is_empty() && !ssid.contains("not associated"))
-}
-
 #[cfg(target_os = "windows")]
 fn windows_ip_configuration() -> (Option<String>, Vec<String>) {
-    let script = concat!(
-        "$route=Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue | ",
-        "Where-Object {$_.NextHop -ne '0.0.0.0'} | Sort-Object RouteMetric,InterfaceMetric | ",
-        "Select-Object -First 1; if ($null -eq $route) {$route=Get-NetRoute ",
-        "-DestinationPrefix '::/0' -ErrorAction SilentlyContinue | Sort-Object ",
-        "RouteMetric,InterfaceMetric | Select-Object -First 1}; if ($null -ne $route) ",
-        "{$config=Get-NetIPConfiguration -InterfaceIndex $route.InterfaceIndex; ",
-        "[Console]::OutputEncoding=[Text.Encoding]::UTF8; Write-Output ",
-        "('INTERFACE=' + $config.InterfaceAlias); @($config.DNSServer.ServerAddresses) | ",
-        "ForEach-Object {Write-Output ('DNS=' + $_)}}"
-    );
-    let Some(output) = command_output(
-        "powershell.exe",
-        &[
-            "-NoLogo",
-            "-NoProfile",
-            "-NonInteractive",
-            "-Command",
-            script,
-        ],
-    ) else {
+    use windows::Win32::{
+        Foundation::{ERROR_BUFFER_OVERFLOW, ERROR_SUCCESS},
+        NetworkManagement::IpHelper::{
+            GAA_FLAG_SKIP_ANYCAST, GAA_FLAG_SKIP_MULTICAST, GetAdaptersAddresses,
+            GetBestInterfaceEx, IP_ADAPTER_ADDRESSES_LH,
+        },
+        Networking::WinSock::{
+            AF_INET, AF_INET6, AF_UNSPEC, IN_ADDR, IN_ADDR_0, IN_ADDR_0_0, IN6_ADDR, IN6_ADDR_0,
+            SOCKADDR, SOCKADDR_IN, SOCKADDR_IN6,
+        },
+    };
+
+    fn best_interface_index() -> Option<(u32, bool)> {
+        let mut index = 0;
+        let ipv4 = SOCKADDR_IN {
+            sin_family: AF_INET,
+            sin_addr: IN_ADDR {
+                S_un: IN_ADDR_0 {
+                    S_un_b: IN_ADDR_0_0 {
+                        s_b1: 8,
+                        s_b2: 8,
+                        s_b3: 8,
+                        s_b4: 8,
+                    },
+                },
+            },
+            ..Default::default()
+        };
+        if unsafe { GetBestInterfaceEx((&raw const ipv4).cast::<SOCKADDR>(), &mut index) }
+            == ERROR_SUCCESS.0
+        {
+            return Some((index, false));
+        }
+
+        let ipv6 = SOCKADDR_IN6 {
+            sin6_family: AF_INET6,
+            sin6_addr: IN6_ADDR {
+                u: IN6_ADDR_0 {
+                    Byte: [
+                        0x20, 0x01, 0x48, 0x60, 0x48, 0x60, 0, 0, 0, 0, 0, 0, 0, 0, 0x88, 0x88,
+                    ],
+                },
+            },
+            ..Default::default()
+        };
+        (unsafe { GetBestInterfaceEx((&raw const ipv6).cast::<SOCKADDR>(), &mut index) }
+            == ERROR_SUCCESS.0)
+            .then_some((index, true))
+    }
+
+    unsafe fn socket_address_to_string(address: *const SOCKADDR) -> Option<String> {
+        if address.is_null() {
+            return None;
+        }
+        match unsafe { (*address).sa_family } {
+            AF_INET => {
+                let address = unsafe { &*address.cast::<SOCKADDR_IN>() };
+                let bytes = unsafe { address.sin_addr.S_un.S_un_b };
+                Some(
+                    std::net::Ipv4Addr::new(bytes.s_b1, bytes.s_b2, bytes.s_b3, bytes.s_b4)
+                        .to_string(),
+                )
+            }
+            AF_INET6 => {
+                let address = unsafe { &*address.cast::<SOCKADDR_IN6>() };
+                Some(std::net::Ipv6Addr::from(unsafe { address.sin6_addr.u.Byte }).to_string())
+            }
+            _ => None,
+        }
+    }
+
+    let Some((best_index, ipv6)) = best_interface_index() else {
         return (None, Vec::new());
     };
-    let mut default_interface = None;
-    let mut dns_servers = Vec::new();
-    for line in output.lines().map(str::trim) {
-        if let Some(value) = line.strip_prefix("INTERFACE=") {
-            if !value.is_empty() {
-                default_interface = Some(value.to_string());
-            }
-        } else if let Some(value) = line.strip_prefix("DNS=")
-            && value.parse::<std::net::IpAddr>().is_ok()
-        {
-            dns_servers.push(value.to_string());
+    let flags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST;
+    let mut byte_count = 0;
+    if unsafe { GetAdaptersAddresses(AF_UNSPEC.0 as u32, flags, None, None, &mut byte_count) }
+        != ERROR_BUFFER_OVERFLOW.0
+        || byte_count == 0
+    {
+        return (None, Vec::new());
+    }
+
+    let word_count = (byte_count as usize).div_ceil(std::mem::size_of::<u64>());
+    let mut buffer = vec![0_u64; word_count];
+    let adapters = buffer.as_mut_ptr().cast::<IP_ADAPTER_ADDRESSES_LH>();
+    if unsafe {
+        GetAdaptersAddresses(
+            AF_UNSPEC.0 as u32,
+            flags,
+            None,
+            Some(adapters),
+            &mut byte_count,
+        )
+    } != ERROR_SUCCESS.0
+    {
+        return (None, Vec::new());
+    }
+
+    let mut current = adapters;
+    let mut selected = None;
+    while !current.is_null() {
+        let adapter = unsafe { &*current };
+        let interface_index = if ipv6 {
+            adapter.Ipv6IfIndex
+        } else {
+            unsafe { adapter.Anonymous1.Anonymous.IfIndex }
+        };
+        if interface_index == best_index {
+            selected = Some(adapter);
+            break;
         }
+        current = adapter.Next;
+    }
+    let Some(adapter) = selected else {
+        return (None, Vec::new());
+    };
+
+    let default_interface = if adapter.FriendlyName.is_null() {
+        None
+    } else {
+        unsafe { adapter.FriendlyName.to_string().ok() }.filter(|name| !name.is_empty())
+    };
+    let mut dns_servers = Vec::new();
+    let mut dns = adapter.FirstDnsServerAddress;
+    while !dns.is_null() {
+        let address = unsafe { &*dns };
+        if let Some(value) = unsafe { socket_address_to_string(address.Address.lpSockaddr) } {
+            dns_servers.push(value);
+        }
+        dns = address.Next;
     }
     dns_servers.sort();
     dns_servers.dedup();
@@ -794,14 +910,39 @@ fn platform_network_context() -> NetworkContext {
 
 #[cfg(target_os = "macos")]
 fn platform_network_context() -> NetworkContext {
-    let default_interface = platform_default_interface();
-    let default_service = default_interface.as_deref().and_then(mac_default_service);
+    use system_configuration::dynamic_store::SCDynamicStoreBuilder;
+
+    let Some(store) = SCDynamicStoreBuilder::new("KokoroBox network context").build() else {
+        return NetworkContext {
+            default_interface: None,
+            default_service: None,
+            dns_servers: Vec::new(),
+            ssid: None,
+        };
+    };
+    let (default_interface, service_identifier) = mac_primary_network(&store);
+    let default_service = service_identifier.as_deref().and_then(|identifier| {
+        mac_dictionary(&store, &format!("Setup:/Network/Service/{identifier}"))
+            .and_then(|dictionary| mac_dictionary_string(&dictionary, "UserDefinedName"))
+    });
+    let dns_servers = service_identifier
+        .as_deref()
+        .and_then(|identifier| {
+            mac_dictionary(&store, &format!("State:/Network/Service/{identifier}/DNS"))
+        })
+        .or_else(|| mac_dictionary(&store, "State:/Network/Global/DNS"))
+        .map(|dictionary| mac_dictionary_strings(&dictionary, "ServerAddresses"))
+        .unwrap_or_default();
+    let ssid = default_interface.as_deref().and_then(|interface| {
+        mac_dictionary(
+            &store,
+            &format!("State:/Network/Interface/{interface}/AirPort"),
+        )
+        .and_then(|dictionary| mac_dictionary_string(&dictionary, "SSID_STR"))
+    });
     NetworkContext {
-        dns_servers: default_service
-            .as_deref()
-            .map(mac_dns_servers)
-            .unwrap_or_default(),
-        ssid: default_service.as_deref().and_then(mac_ssid),
+        dns_servers,
+        ssid,
         default_interface,
         default_service,
     }
@@ -809,15 +950,38 @@ fn platform_network_context() -> NetworkContext {
 
 #[cfg(all(test, target_os = "macos"))]
 mod macos_tests {
-    use super::parse_mac_default_service;
+    use super::{mac_dictionary_string, mac_dictionary_strings};
+    use system_configuration::core_foundation::{
+        array::CFArray, dictionary::CFDictionary, string::CFString,
+    };
 
     #[test]
-    fn maps_device_without_treating_hardware_line_as_a_service() {
-        let order = "An asterisk (*) denotes that a network service is disabled.\n(1) Wi-Fi\n(Hardware Port: Wi-Fi, Device: en0)\n(2) Thunderbolt Bridge\n(Hardware Port: Thunderbolt Bridge, Device: bridge0)\n";
+    fn reads_dynamic_store_string_values() {
+        let dictionary = CFDictionary::from_CFType_pairs(&[(
+            CFString::new("PrimaryInterface"),
+            CFString::new("en0"),
+        )]);
 
         assert_eq!(
-            parse_mac_default_service(order, "en0").as_deref(),
-            Some("Wi-Fi")
+            mac_dictionary_string(&dictionary.to_untyped(), "PrimaryInterface").as_deref(),
+            Some("en0")
+        );
+    }
+
+    #[test]
+    fn filters_and_deduplicates_dynamic_store_dns_values() {
+        let servers = CFArray::from_CFTypes(&[
+            CFString::new("192.168.1.1"),
+            CFString::new("not-an-address"),
+            CFString::new("192.168.1.1"),
+            CFString::new("2001:db8::1"),
+        ]);
+        let dictionary =
+            CFDictionary::from_CFType_pairs(&[(CFString::new("ServerAddresses"), servers)]);
+
+        assert_eq!(
+            mac_dictionary_strings(&dictionary.to_untyped(), "ServerAddresses"),
+            ["192.168.1.1", "2001:db8::1"]
         );
     }
 }

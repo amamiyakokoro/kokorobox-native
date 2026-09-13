@@ -53,9 +53,12 @@ limits its result count, and counts nested directories it cannot read.
 Launch-at-login uses the current user's Run registry key on Windows,
 `SMAppService.mainApp` on macOS, and XDG Autostart on Linux. Managing the
 Windows entry does not elevate the caller, and the launched application keeps
-the interactive user's normal token. `getNetworkContext()` is best-effort: unavailable
-interface, network-service, DNS, or Wi-Fi fields are omitted rather than
-inferred.
+the interactive user's normal token. `getNetworkContext()` is best-effort:
+unavailable interface, network-service, DNS, or Wi-Fi fields are omitted rather
+than inferred. macOS network discovery uses SystemConfiguration without
+spawning command-line tools.
+Windows network discovery likewise uses IP Helper and Native Wi-Fi instead of
+PowerShell.
 
 Windows privilege relaunches are explicit and non-persistent. `launchElevated`
 starts a fresh process through the UAC `runas` verb, while `launchUnelevated`

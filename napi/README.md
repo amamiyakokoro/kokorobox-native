@@ -58,7 +58,10 @@ and an absolute executable path. It returns the selected backend: the Windows
 current-user Run key, macOS `SMAppService.mainApp`, or Linux XDG Autostart. On
 macOS, `requiresApproval` reports when the entry is registered but still needs
 approval in System Settings. Network context is best-effort, so optional fields
-such as the default interface and SSID may be absent.
+such as the default interface and SSID may be absent. macOS obtains this state
+directly from SystemConfiguration without parsing command output.
+Windows obtains the preferred interface and DNS servers from IP Helper and the
+SSID from Native Wi-Fi, without spawning PowerShell.
 
 Core-file privilege APIs are supported on macOS and Linux. They accept only
 canonical, existing executables named `mihomo` or `mihomo-alpha`; callers cannot

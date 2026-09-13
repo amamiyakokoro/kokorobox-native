@@ -14,11 +14,13 @@ inferring support from the operating-system name.
 - `dnsServers`: DNS servers attached to that active route or service.
 - `ssid`: connected Wi-Fi SSID when the platform exposes one.
 
-macOS derives the interface from `route` and maps it to a Network Service.
+macOS reads the primary interface, Network Service, DNS servers, and available
+Wi-Fi state directly from the SystemConfiguration dynamic store; it does not
+launch `route` or `networksetup` for discovery.
 Linux reads the default route, prefers `resolvectl`, and falls back to
 `/etc/resolv.conf`; SSID lookup prefers `iwgetid` and then NetworkManager.
-Windows uses network cmdlets for route/DNS state and the Native Wi-Fi API for
-the SSID, avoiding localized `netsh` output.
+Windows uses IP Helper for route/DNS state and the Native Wi-Fi API for the
+SSID; discovery does not spawn PowerShell or parse localized command output.
 
 Missing data is omitted or returned as an empty list. Consumers must not treat
 an unavailable SSID as an empty SSID match.
