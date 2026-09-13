@@ -6,8 +6,8 @@ provide in JavaScript alone. It is published as a small JavaScript loader plus
 prebuilt, platform-specific native packages.
 
 It provides file and application icon helpers, application inspection, rule-set
-conversion, launch-at-login and network-context helpers, constrained Unix core
-permissions, and Windows account, elevation, Firewall, and
+conversion, launch-at-login, macOS managed-service and network-context helpers,
+constrained Unix core permissions, and Windows account, elevation, Firewall, and
 application-scanning integrations.
 
 ## Repository structure
@@ -19,6 +19,7 @@ application-scanning integrations.
 │   ├── lib.rs              # Public Rust API and capability declaration
 │   ├── application.rs      # Application inspection and Windows scanning
 │   ├── icons.rs            # Icon data URLs and display-name lookup
+│   ├── macos_service.rs    # Embedded LaunchDaemon lifecycle management
 │   ├── platform.rs         # Login-item and network-context implementations
 │   ├── privileges.rs       # Constrained Mihomo core-file privileges
 │   ├── rules.rs            # Rule-file conversion facade

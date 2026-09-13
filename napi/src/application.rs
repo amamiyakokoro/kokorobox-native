@@ -12,6 +12,7 @@ pub struct JsNativeCapabilities {
     pub windows_firewall: bool,
     pub launch_at_login: bool,
     pub network_context: bool,
+    pub macos_service_management: bool,
     pub core_file_privileges: bool,
 }
 
@@ -54,6 +55,7 @@ pub fn get_native_capabilities() -> JsNativeCapabilities {
         windows_firewall: capabilities.windows_firewall,
         launch_at_login: capabilities.launch_at_login,
         network_context: capabilities.network_context,
+        macos_service_management: capabilities.macos_service_management,
         core_file_privileges: capabilities.core_file_privileges,
     }
 }

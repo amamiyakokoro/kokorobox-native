@@ -2,6 +2,7 @@
 
 mod application;
 mod icons;
+mod macos_service;
 mod platform;
 mod privileges;
 mod rules;
@@ -15,6 +16,10 @@ pub use application::{
     ApplicationInfo, ApplicationScanResult, inspect_application, scan_windows_applications,
 };
 pub use icons::{file_to_data_url, get_app_name};
+pub use macos_service::{
+    MacOSManagedServiceStatus, get_macos_managed_service_status, open_macos_login_items_settings,
+    register_macos_managed_service, reload_macos_managed_service, unregister_macos_managed_service,
+};
 #[cfg(not(target_os = "windows"))]
 pub use non_windows::{
     current_user_sid, is_running_as_admin, launch_elevated, launch_unelevated, run_elevated,
@@ -49,6 +54,7 @@ pub struct NativeCapabilities {
     pub windows_firewall: bool,
     pub launch_at_login: bool,
     pub network_context: bool,
+    pub macos_service_management: bool,
     pub core_file_privileges: bool,
 }
 
@@ -69,6 +75,7 @@ pub fn native_capabilities() -> NativeCapabilities {
             target_os = "macos",
             target_os = "linux"
         )),
+        macos_service_management: cfg!(target_os = "macos"),
         core_file_privileges: cfg!(any(target_os = "macos", target_os = "linux")),
     }
 }

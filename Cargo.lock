@@ -347,6 +347,7 @@ dependencies = [
  "anyhow",
  "file-icon",
  "objc2",
+ "objc2-foundation",
  "objc2-service-management",
  "rule-converter",
  "system-configuration",

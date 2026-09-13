@@ -11,8 +11,16 @@ export interface NativeCapabilities {
   windowsFirewall: boolean;
   launchAtLogin: boolean;
   networkContext: boolean;
+  macosServiceManagement: boolean;
   coreFilePrivileges: boolean;
 }
+
+export type MacOSManagedServiceStatus =
+  | "not-registered"
+  | "enabled"
+  | "requires-approval"
+  | "not-found"
+  | "unknown";
 
 export interface LaunchAtLoginOptions {
   /** Stable, filesystem-safe identifier, such as `com.amamiyakokoro.kokorobox`. */
@@ -115,6 +123,12 @@ export function setLaunchAtLogin(
   enabled: boolean,
 ): Promise<LaunchAtLoginStatus>;
 export function getNetworkContext(): Promise<NetworkContext>;
+/** Query a LaunchDaemon plist embedded in the calling macOS application. */
+export function getMacosManagedServiceStatus(plistName: string): MacOSManagedServiceStatus;
+export function registerMacosManagedService(plistName: string): MacOSManagedServiceStatus;
+export function unregisterMacosManagedService(plistName: string): MacOSManagedServiceStatus;
+export function reloadMacosManagedService(plistName: string): MacOSManagedServiceStatus;
+export function openMacosLoginItemsSettings(): void;
 /** Inspect only validated `mihomo` and `mihomo-alpha` executable paths. */
 export function getCorePrivilegeStatus(paths: string[]): CorePrivilegeStatus[];
 /** Grant or revoke the constrained Unix core-file privilege. */

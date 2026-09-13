@@ -38,6 +38,20 @@ macOS implementation does not invoke AppleScript or request Automation access.
 `requiresApproval` distinguishes an enabled registration that the user must
 approve in System Settings from an unregistered entry.
 
+## macOS managed services
+
+The managed-service API owns the lifecycle of a LaunchDaemon plist embedded in
+the signed application's `Contents/Library/LaunchDaemons` directory. Callers
+pass only a validated `.plist` basename; paths and arbitrary identifiers are
+rejected. Status, registration, unregistration, reload, and opening the Login
+Items settings panel use `SMAppService` directly and never invoke AppleScript or
+`launchctl`.
+
+Registration is idempotent for enabled and approval-pending services. A denied
+registration that leaves the daemon awaiting approval is returned as
+`requires-approval`, so callers can guide the user to System Settings instead of
+reporting a generic failure. This capability requires macOS 13 or later.
+
 ## Windows privilege relaunch
 
 `launchElevated(command, args)` starts a new process with the standard UAC

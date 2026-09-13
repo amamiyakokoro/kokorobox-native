@@ -39,6 +39,7 @@ The full TypeScript declarations are shipped in
 | Applications | `inspectApplication`, `scanWindowsApplications` |
 | Rules | `fileToStr` |
 | Platform | `getLaunchAtLogin`, `setLaunchAtLogin`, `getNetworkContext` |
+| macOS service | `getMacosManagedServiceStatus`, `registerMacosManagedService`, `unregisterMacosManagedService`, `reloadMacosManagedService`, `openMacosLoginItemsSettings` |
 | Core permissions | `getCorePrivilegeStatus`, `setCorePrivileges` |
 | Windows | `getCurrentUserSid`, `isRunningAsAdmin`, `runElevated`, `launchElevated`, `launchUnelevated`, `setupFirewallRules` |
 
@@ -62,6 +63,11 @@ such as the default interface and SSID may be absent. macOS obtains this state
 directly from SystemConfiguration without parsing command output.
 Windows obtains the preferred interface and DNS servers from IP Helper and the
 SSID from Native Wi-Fi, without spawning PowerShell.
+
+The macOS managed-service functions accept the basename of an embedded
+LaunchDaemon plist and use `SMAppService` directly. They return an explicit
+`requires-approval` state when an administrator must approve the daemon in
+System Settings.
 
 Core-file privilege APIs are supported on macOS and Linux. They accept only
 canonical, existing executables named `mihomo` or `mihomo-alpha`; callers cannot
