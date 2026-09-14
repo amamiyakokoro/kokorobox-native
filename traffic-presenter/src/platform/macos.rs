@@ -4,6 +4,7 @@ use kokorobox_traffic_presenter::{
 use std::io::{self, BufRead};
 use tao::event::{Event, StartCause};
 use tao::event_loop::{ControlFlow, EventLoopBuilder};
+use tao::platform::macos::{ActivationPolicy, EventLoopExtMacOS};
 use tray_icon::{TrayIcon, TrayIconBuilder};
 
 enum UserEvent {
@@ -13,7 +14,10 @@ enum UserEvent {
 }
 
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
-    let event_loop = EventLoopBuilder::<UserEvent>::with_user_event().build();
+    let mut event_loop = EventLoopBuilder::<UserEvent>::with_user_event().build();
+    // This process owns only a menu bar status item. Treating it as a regular
+    // application gives the headless presenter its own Dock icon on macOS.
+    event_loop.set_activation_policy(ActivationPolicy::Accessory);
     let proxy = event_loop.create_proxy();
 
     std::thread::spawn(move || {
