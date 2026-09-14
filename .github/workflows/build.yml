@@ -365,17 +365,6 @@ jobs:
           fi
           VERSION="${VERSION#v}"
           npm version "$VERSION" --no-git-tag-version --allow-same-version
-          node <<'NODE'
-          const fs = require('node:fs')
-          const packageFile = 'package.json'
-          const json = JSON.parse(fs.readFileSync(packageFile, 'utf8'))
-          for (const dependency of Object.keys(json.optionalDependencies ?? {})) {
-            if (dependency.startsWith(`${json.name}-`)) {
-              json.optionalDependencies[dependency] = json.version
-            }
-          }
-          fs.writeFileSync(packageFile, `${JSON.stringify(json, null, 2)}\n`)
-          NODE
 
       - name: Create platform npm package dirs
         run: pnpm create-npm-dirs
@@ -423,6 +412,22 @@ jobs:
         working-directory: napi
         env:
           NPM_CONFIG_PROVENANCE: "true"
+
+      - name: Align platform package dependencies
+        shell: bash
+        working-directory: napi
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs')
+          const packageFile = 'package.json'
+          const json = JSON.parse(fs.readFileSync(packageFile, 'utf8'))
+          for (const dependency of Object.keys(json.optionalDependencies ?? {})) {
+            if (dependency.startsWith(`${json.name}-`)) {
+              json.optionalDependencies[dependency] = json.version
+            }
+          }
+          fs.writeFileSync(packageFile, `${JSON.stringify(json, null, 2)}\n`)
+          NODE
 
       - name: Verify npm package contents
         shell: bash
