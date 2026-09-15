@@ -23,10 +23,16 @@ path = "src/lib.rs"
 
 [dependencies]
 anyhow = "1"
+base64 = "0.22"
+ed25519-dalek = { version = "2", features = ["pem", "pkcs8"] }
 file-icon = { git = "https://github.com/UruhaLushia/file-icon-rs.git" }
+getrandom = "0.3"
+keyring = { version = "3", default-features = false }
 rule-converter = { git = "https://github.com/UruhaLushia/rule-converter.git", default-features = false }
+sha2 = "0.10"
 
 [target.'cfg(target_os = "macos")'.dependencies]
+keyring = { version = "3", default-features = false, features = ["apple-native"] }
 objc2 = { version = "0.6.4", features = ["std"] }
 objc2-foundation = { version = "0.3.2", default-features = false, features = [
     "NSString",
@@ -40,6 +46,7 @@ objc2-service-management = { version = "0.3.2", default-features = false, featur
 system-configuration = "0.8"
 
 [target.'cfg(target_os = "windows")'.dependencies]
+keyring = { version = "3", default-features = false, features = ["windows-native"] }
 windows = { version = "0.62", features = [
     "Win32_Foundation",
     "Win32_NetworkManagement_IpHelper",
@@ -54,4 +61,10 @@ windows = { version = "0.62", features = [
     "Win32_System_Threading",
     "Win32_UI_Shell",
     "Win32_UI_WindowsAndMessaging",
+] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { version = "3", default-features = false, features = [
+    "crypto-rust",
+    "linux-native-sync-persistent",
 ] }

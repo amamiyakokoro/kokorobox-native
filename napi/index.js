@@ -120,3 +120,6 @@ export const runElevated = nativeBinding.runElevated;
 export const launchElevated = nativeBinding.launchElevated;
 export const launchUnelevated = nativeBinding.launchUnelevated;
 export const setupFirewallRules = nativeBinding.setupFirewallRules;
+export const ServiceIdentity = nativeBinding.ServiceIdentity;
+export const openServiceIdentity = nativeBinding.openServiceIdentity;
+export const deleteServiceIdentity = nativeBinding.deleteServiceIdentity;

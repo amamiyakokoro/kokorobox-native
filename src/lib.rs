@@ -7,6 +7,7 @@ mod macos_service;
 mod platform;
 mod privileges;
 mod rules;
+mod service_identity;
 
 #[cfg(not(target_os = "windows"))]
 mod non_windows;
@@ -35,6 +36,10 @@ pub use privileges::{CorePrivilegeStatus, get_core_privilege_status, set_core_pr
 pub use rules::{
     RuleConvertOptions, RuleOutputInfo, RuleSkippedItem, RuleStringResult, rule_file_to_string,
 };
+pub use service_identity::{
+    LegacyServiceIdentity, ServiceIdentity, ServiceIdentityInfo, ServiceIdentityOptions,
+    delete_service_identity, open_service_identity,
+};
 #[cfg(target_os = "windows")]
 pub use windows::{
     current_user_sid, is_running_as_admin, launch_elevated, launch_unelevated, run_elevated,
@@ -60,6 +65,7 @@ pub struct NativeCapabilities {
     pub network_monitor: bool,
     pub macos_service_management: bool,
     pub core_file_privileges: bool,
+    pub service_identity: bool,
 }
 
 pub fn native_capabilities() -> NativeCapabilities {
@@ -87,5 +93,6 @@ pub fn native_capabilities() -> NativeCapabilities {
         )),
         macos_service_management: cfg!(target_os = "macos"),
         core_file_privileges: cfg!(any(target_os = "macos", target_os = "linux")),
+        service_identity: true,
     }
 }

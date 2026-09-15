@@ -15,6 +15,7 @@ export interface NativeCapabilities {
   networkMonitor: boolean;
   macosServiceManagement: boolean;
   coreFilePrivileges: boolean;
+  serviceIdentity: boolean;
 }
 
 export interface ExecutableSearchOptions {
@@ -73,6 +74,42 @@ export interface CorePrivilegeStatus {
   /** Whether the set-user-ID bit is present. */
   granted: boolean;
 }
+
+export interface ServiceIdentityOptions {
+  /** OS credential namespace, for example `com.amamiyakokoro.KokoroBox`. */
+  service: string;
+  account: string;
+  /** Mode-0600 fallback used only when Linux Secret Service is unavailable. */
+  linuxFallbackPath?: string;
+}
+
+export interface LegacyServiceIdentity {
+  keyId?: string;
+  publicKey: string;
+  privateKey: string;
+}
+
+export interface ServiceIdentityInfo {
+  keyId: string;
+  publicKey: string;
+  backend:
+    | "windows-credential-manager"
+    | "macos-keychain"
+    | "linux-secret-service"
+    | "linux-protected-file";
+}
+
+/** Opaque native signer. Private key material is never exposed by this object. */
+export class ServiceIdentity {
+  getInfo(): ServiceIdentityInfo;
+  sign(data: string): string;
+}
+
+export function openServiceIdentity(
+  options: ServiceIdentityOptions,
+  legacy?: LegacyServiceIdentity,
+): Promise<ServiceIdentity>;
+export function deleteServiceIdentity(options: ServiceIdentityOptions): Promise<void>;
 
 export interface ApplicationInfo {
   executablePath: string;
@@ -151,7 +188,7 @@ export function getNetworkContext(): Promise<NetworkContext>;
 export function waitForNetworkContextChange(
   previous: NetworkContext,
   timeoutMs?: number,
-): Promise<NetworkContext | undefined>;
+): Promise<NetworkContext | null>;
 /** Query a LaunchDaemon plist embedded in the calling macOS application. */
 export function getMacosManagedServiceStatus(plistName: string): MacOSManagedServiceStatus;
 export function registerMacosManagedService(plistName: string): MacOSManagedServiceStatus;
