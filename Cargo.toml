@@ -67,4 +67,5 @@ windows = { version = "0.62", features = [
 keyring = { version = "3", default-features = false, features = [
     "crypto-rust",
     "linux-native-sync-persistent",
+    "vendored",
 ] }
