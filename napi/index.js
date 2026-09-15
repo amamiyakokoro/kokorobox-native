@@ -104,6 +104,7 @@ export const findExecutables = nativeBinding.findExecutables;
 export const getLaunchAtLogin = nativeBinding.getLaunchAtLogin;
 export const setLaunchAtLogin = nativeBinding.setLaunchAtLogin;
 export const getNetworkContext = nativeBinding.getNetworkContext;
+export const waitForNetworkContextChange = nativeBinding.waitForNetworkContextChange;
 export const getMacosManagedServiceStatus = nativeBinding.getMacosManagedServiceStatus;
 export const registerMacosManagedService = nativeBinding.registerMacosManagedService;
 export const unregisterMacosManagedService = nativeBinding.unregisterMacosManagedService;

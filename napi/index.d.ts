@@ -12,6 +12,7 @@ export interface NativeCapabilities {
   windowsFirewall: boolean;
   launchAtLogin: boolean;
   networkContext: boolean;
+  networkMonitor: boolean;
   macosServiceManagement: boolean;
   coreFilePrivileges: boolean;
 }
@@ -57,6 +58,8 @@ export interface LaunchAtLoginStatus {
 
 /** Best-effort active-network state. Unavailable fields are omitted instead of guessed. */
 export interface NetworkContext {
+  /** Whether the operating system currently has a usable default route. */
+  online: boolean;
   defaultInterface?: string;
   /** Active network-service name. Currently populated on macOS and Linux. */
   defaultService?: string;
@@ -144,6 +147,11 @@ export function setLaunchAtLogin(
   enabled: boolean,
 ): Promise<LaunchAtLoginStatus>;
 export function getNetworkContext(): Promise<NetworkContext>;
+/** Resolve when the native network snapshot changes, or `undefined` on timeout. */
+export function waitForNetworkContextChange(
+  previous: NetworkContext,
+  timeoutMs?: number,
+): Promise<NetworkContext | undefined>;
 /** Query a LaunchDaemon plist embedded in the calling macOS application. */
 export function getMacosManagedServiceStatus(plistName: string): MacOSManagedServiceStatus;
 export function registerMacosManagedService(plistName: string): MacOSManagedServiceStatus;

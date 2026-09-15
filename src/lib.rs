@@ -29,7 +29,7 @@ pub use non_windows::{
 };
 pub use platform::{
     LaunchAtLoginOptions, LaunchAtLoginStatus, NetworkContext, get_launch_at_login,
-    get_network_context, set_launch_at_login,
+    get_network_context, set_launch_at_login, wait_for_network_context_change,
 };
 pub use privileges::{CorePrivilegeStatus, get_core_privilege_status, set_core_privileges};
 pub use rules::{
@@ -57,6 +57,7 @@ pub struct NativeCapabilities {
     pub windows_firewall: bool,
     pub launch_at_login: bool,
     pub network_context: bool,
+    pub network_monitor: bool,
     pub macos_service_management: bool,
     pub core_file_privileges: bool,
 }
@@ -75,6 +76,11 @@ pub fn native_capabilities() -> NativeCapabilities {
             target_os = "linux"
         )),
         network_context: cfg!(any(
+            target_os = "windows",
+            target_os = "macos",
+            target_os = "linux"
+        )),
+        network_monitor: cfg!(any(
             target_os = "windows",
             target_os = "macos",
             target_os = "linux"
