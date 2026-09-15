@@ -162,7 +162,9 @@ fn fallback_path(options: &ServiceIdentityOptions) -> Result<PathBuf> {
 #[cfg(target_os = "linux")]
 fn read_fallback(options: &ServiceIdentityOptions) -> Result<Option<SigningKey>> {
     use std::fs;
-    let path = fallback_path(options)?;
+    let Some(path) = options.linux_fallback_path.as_ref().map(PathBuf::from) else {
+        return Ok(None);
+    };
     match fs::read_to_string(path) {
         Ok(value) => Ok(Some(decode_credential(value.trim())?)),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
@@ -204,10 +206,33 @@ pub fn open_service_identity(
     let entry = Entry::new(options.service.trim(), options.account.trim())?;
     let keyring_result = entry.get_password();
     let (signing_key, backend) = match keyring_result {
-        Ok(value) => (decode_credential(&value)?, keyring_backend()),
+        Ok(value) => {
+            let stored = decode_credential(&value)?;
+            let selected = match legacy {
+                Some(legacy) => {
+                    let imported = decode_legacy(legacy)?;
+                    if imported.verifying_key() != stored.verifying_key() {
+                        entry.set_password(&encode_credential(&imported)?)?;
+                        imported
+                    } else {
+                        stored
+                    }
+                }
+                None => stored,
+            };
+            (selected, keyring_backend())
+        }
         Err(KeyringError::NoEntry) => {
+            #[cfg(target_os = "linux")]
+            let key = match read_fallback(options)? {
+                Some(key) => key,
+                None => imported_or_generated(legacy)?,
+            };
+            #[cfg(not(target_os = "linux"))]
             let key = imported_or_generated(legacy)?;
             entry.set_password(&encode_credential(&key)?)?;
+            #[cfg(target_os = "linux")]
+            remove_fallback(options)?;
             (key, keyring_backend())
         }
         #[cfg(target_os = "linux")]
@@ -243,6 +268,19 @@ pub fn delete_service_identity(options: &ServiceIdentityOptions) -> Result<()> {
         }
         #[cfg(not(target_os = "linux"))]
         Err(error) => return Err(error.into()),
+    }
+    #[cfg(target_os = "linux")]
+    remove_fallback(options)?;
+    Ok(())
+}
+
+#[cfg(target_os = "linux")]
+fn remove_fallback(options: &ServiceIdentityOptions) -> Result<()> {
+    if let Some(path) = &options.linux_fallback_path {
+        let path = Path::new(path);
+        if path.exists() {
+            std::fs::remove_file(path)?;
+        }
     }
     Ok(())
 }
