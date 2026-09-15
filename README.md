@@ -11,7 +11,8 @@ input; the presenter never connects to Mihomo or handles controller secrets.
 
 It provides file and application icon helpers, application inspection,
 shell-free executable discovery, rule-set conversion, launch-at-login, macOS
-managed-service and network-context helpers, constrained Unix core permissions,
+managed-service and observable network-context helpers, secure service identity,
+constrained Unix core permissions,
 and Windows account, elevation, Firewall, and application-scanning integrations.
 
 ## Repository structure
@@ -79,6 +80,13 @@ than inferred. macOS network discovery uses SystemConfiguration without
 spawning command-line tools.
 Windows network discovery likewise uses IP Helper and Native Wi-Fi instead of
 PowerShell.
+
+`waitForNetworkContextChange()` provides a cancellable-by-timeout observation
+primitive so clients can maintain one event loop instead of separate interface
+and SSID timers. `openServiceIdentity()` returns an opaque Ed25519 signer: new
+private keys remain in Windows Credential Manager, macOS Keychain, or Linux
+Secret Service. Linux explicitly reports and uses a mode-0600 file fallback
+when no Secret Service session is available.
 
 Windows privilege relaunches are explicit and non-persistent. `launchElevated`
 starts a fresh process through the UAC `runas` verb, while `launchUnelevated`

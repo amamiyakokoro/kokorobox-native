@@ -8,4 +8,5 @@ mod macos_service;
 mod platform;
 mod privileges;
 mod rules;
+mod service_identity;
 mod windows;

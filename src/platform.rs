@@ -1,4 +1,8 @@
-use std::path::Path;
+use std::{
+    path::Path,
+    thread,
+    time::{Duration, Instant},
+};
 
 #[cfg(target_os = "linux")]
 use std::path::PathBuf;
@@ -38,8 +42,9 @@ pub struct LaunchAtLoginStatus {
     pub backend: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NetworkContext {
+    pub online: bool,
     pub default_interface: Option<String>,
     pub default_service: Option<String>,
     pub dns_servers: Vec<String>,
@@ -90,6 +95,31 @@ pub fn set_launch_at_login(
 
 pub fn get_network_context() -> Result<NetworkContext> {
     Ok(platform_network_context())
+}
+
+/// Wait until the native network snapshot changes, or until the timeout expires.
+///
+/// Keeping this wait in the native layer gives all frontends one cross-platform
+/// observation contract and avoids independent JavaScript polling loops. Platform
+/// event sources can replace the short internal probe without changing callers.
+pub fn wait_for_network_context_change(
+    previous: &NetworkContext,
+    timeout: Duration,
+) -> Result<Option<NetworkContext>> {
+    let started_at = Instant::now();
+    let probe_interval = Duration::from_millis(500);
+
+    loop {
+        let current = get_network_context()?;
+        if &current != previous {
+            return Ok(Some(current));
+        }
+        let elapsed = started_at.elapsed();
+        if elapsed >= timeout {
+            return Ok(None);
+        }
+        thread::sleep(probe_interval.min(timeout.saturating_sub(elapsed)));
+    }
 }
 
 #[cfg(any(target_os = "linux", target_os = "windows"))]
@@ -604,6 +634,7 @@ fn linux_ssid() -> Option<String> {
 fn platform_network_context() -> NetworkContext {
     let default_interface = platform_default_interface();
     NetworkContext {
+        online: default_interface.is_some(),
         default_service: default_interface.clone(),
         dns_servers: linux_dns_servers(default_interface.as_deref()),
         ssid: linux_ssid(),
@@ -907,6 +938,7 @@ fn windows_ssid() -> Option<String> {
 fn platform_network_context() -> NetworkContext {
     let (default_interface, dns_servers) = windows_ip_configuration();
     NetworkContext {
+        online: default_interface.is_some(),
         default_interface,
         default_service: None,
         dns_servers,
@@ -920,6 +952,7 @@ fn platform_network_context() -> NetworkContext {
 
     let Some(store) = SCDynamicStoreBuilder::new("KokoroBox network context").build() else {
         return NetworkContext {
+            online: false,
             default_interface: None,
             default_service: None,
             dns_servers: Vec::new(),
@@ -947,6 +980,7 @@ fn platform_network_context() -> NetworkContext {
         .and_then(|dictionary| mac_dictionary_string(&dictionary, "SSID_STR"))
     });
     NetworkContext {
+        online: default_interface.is_some(),
         dns_servers,
         ssid,
         default_interface,
@@ -1005,6 +1039,7 @@ fn platform_set_launch_at_login(_options: &LaunchAtLoginOptions, _enabled: bool)
 #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
 fn platform_network_context() -> NetworkContext {
     NetworkContext {
+        online: false,
         default_interface: None,
         default_service: None,
         dns_servers: Vec::new(),

@@ -12,8 +12,10 @@ export interface NativeCapabilities {
   windowsFirewall: boolean;
   launchAtLogin: boolean;
   networkContext: boolean;
+  networkMonitor: boolean;
   macosServiceManagement: boolean;
   coreFilePrivileges: boolean;
+  serviceIdentity: boolean;
 }
 
 export interface ExecutableSearchOptions {
@@ -57,6 +59,8 @@ export interface LaunchAtLoginStatus {
 
 /** Best-effort active-network state. Unavailable fields are omitted instead of guessed. */
 export interface NetworkContext {
+  /** Whether the operating system currently has a usable default route. */
+  online: boolean;
   defaultInterface?: string;
   /** Active network-service name. Currently populated on macOS and Linux. */
   defaultService?: string;
@@ -70,6 +74,42 @@ export interface CorePrivilegeStatus {
   /** Whether the set-user-ID bit is present. */
   granted: boolean;
 }
+
+export interface ServiceIdentityOptions {
+  /** OS credential namespace, for example `com.amamiyakokoro.KokoroBox`. */
+  service: string;
+  account: string;
+  /** Mode-0600 fallback used only when Linux Secret Service is unavailable. */
+  linuxFallbackPath?: string;
+}
+
+export interface LegacyServiceIdentity {
+  keyId?: string;
+  publicKey: string;
+  privateKey: string;
+}
+
+export interface ServiceIdentityInfo {
+  keyId: string;
+  publicKey: string;
+  backend:
+    | "windows-credential-manager"
+    | "macos-keychain"
+    | "linux-secret-service"
+    | "linux-protected-file";
+}
+
+/** Opaque native signer. Private key material is never exposed by this object. */
+export class ServiceIdentity {
+  getInfo(): ServiceIdentityInfo;
+  sign(data: string): string;
+}
+
+export function openServiceIdentity(
+  options: ServiceIdentityOptions,
+  legacy?: LegacyServiceIdentity,
+): Promise<ServiceIdentity>;
+export function deleteServiceIdentity(options: ServiceIdentityOptions): Promise<void>;
 
 export interface ApplicationInfo {
   executablePath: string;
@@ -144,6 +184,11 @@ export function setLaunchAtLogin(
   enabled: boolean,
 ): Promise<LaunchAtLoginStatus>;
 export function getNetworkContext(): Promise<NetworkContext>;
+/** Resolve when the native network snapshot changes, or `undefined` on timeout. */
+export function waitForNetworkContextChange(
+  previous: NetworkContext,
+  timeoutMs?: number,
+): Promise<NetworkContext | null>;
 /** Query a LaunchDaemon plist embedded in the calling macOS application. */
 export function getMacosManagedServiceStatus(plistName: string): MacOSManagedServiceStatus;
 export function registerMacosManagedService(plistName: string): MacOSManagedServiceStatus;
