@@ -26,7 +26,7 @@ anyhow = "1"
 base64 = "0.23"
 ed25519-dalek = { version = "3", features = ["pem", "pkcs8"] }
 file-icon = { git = "https://github.com/UruhaLushia/file-icon-rs.git" }
-getrandom = "0.3"
+getrandom = "0.4"
 keyring = { version = "3", default-features = false }
 rule-converter = { git = "https://github.com/UruhaLushia/rule-converter.git", default-features = false }
 sha2 = "0.11"
