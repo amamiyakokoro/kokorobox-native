@@ -7,6 +7,7 @@
 #include <atomic>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 
 static const NSInteger KBProtocolVersion = 1;
 static NSString *const KBExtensionIdentifier = @"com.amamiyakokoro.app.proxy-extension";
