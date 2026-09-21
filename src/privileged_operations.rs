@@ -132,16 +132,16 @@ fn service_arguments(options: &ServiceLifecycleOptions) -> Result<Vec<String>> {
 
 #[cfg(target_os = "windows")]
 fn run_service(executable: &Path, arguments: &[String]) -> Result<()> {
-    let executable = executable.to_string_lossy();
+    let executable = executable.to_string_lossy().into_owned();
     let exit_code = if crate::windows::is_running_as_admin()? {
-        std::process::Command::new(executable.as_ref())
+        std::process::Command::new(&executable)
             .args(arguments)
             .status()
             .context("PRIVILEGED_SERVICE_FAILED: unable to start service command")?
             .code()
             .unwrap_or(-1) as u32
     } else {
-        crate::windows::run_elevated(executable.as_ref(), arguments)?
+        crate::windows::run_elevated(&executable, arguments)?
     };
     if exit_code != 0 {
         bail!("PRIVILEGED_SERVICE_FAILED: service command exited with {exit_code}");
