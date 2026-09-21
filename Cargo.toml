@@ -23,7 +23,7 @@ path = "src/lib.rs"
 
 [dependencies]
 anyhow = "1"
-base64 = "0.22"
+base64 = "0.23"
 ed25519-dalek = { version = "3", features = ["pem", "pkcs8"] }
 file-icon = { git = "https://github.com/UruhaLushia/file-icon-rs.git" }
 getrandom = "0.3"

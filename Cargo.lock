@@ -213,6 +213,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
+name = "base64"
+version = "0.23.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5"
+
+[[package]]
 name = "base64ct"
 version = "1.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -804,7 +810,7 @@ name = "file-icon"
 version = "0.1.2"
 source = "git+https://github.com/UruhaLushia/file-icon-rs.git#6cd8adc85ff06471fad2a3b3de8a5765ab6482f4"
 dependencies = [
- "base64",
+ "base64 0.22.1",
  "objc",
  "plist",
  "png",
@@ -1561,7 +1567,7 @@ name = "kokorobox-native"
 version = "0.9.0"
 dependencies = [
  "anyhow",
- "base64",
+ "base64 0.23.1",
  "ed25519-dalek",
  "file-icon",
  "getrandom 0.3.4",
@@ -2339,7 +2345,7 @@ version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7da1d65da6dd5d1e44199ac0f58712d241c0f439f80adea8924d832384087f85"
 dependencies = [
- "base64",
+ "base64 0.22.1",
  "indexmap",
  "quick-xml",
  "serde",
