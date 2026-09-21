@@ -30,7 +30,8 @@ pub use macos_service::{
 pub use non_windows::{current_user_sid, is_running_as_admin, setup_firewall_rules};
 pub use platform::{
     LaunchAtLoginOptions, LaunchAtLoginStatus, NetworkContext, get_launch_at_login,
-    get_network_context, set_launch_at_login, wait_for_network_context_change,
+    get_network_context, set_active_network_dns, set_launch_at_login,
+    wait_for_network_context_change,
 };
 pub use privileged_operations::{
     ServiceLifecycleAction, ServiceLifecycleOptions, cleanup_legacy_macos_service,

@@ -185,6 +185,8 @@ export function setLaunchAtLogin(
   enabled: boolean,
 ): Promise<LaunchAtLoginStatus>;
 export function getNetworkContext(): Promise<NetworkContext>;
+/** Set DNS on the active macOS network service; [] restores automatic DNS. */
+export function setActiveNetworkDns(servers: string[]): Promise<void>;
 /** Resolve when the native network snapshot changes, or `undefined` on timeout. */
 export function waitForNetworkContextChange(
   previous: NetworkContext,
