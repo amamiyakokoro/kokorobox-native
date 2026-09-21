@@ -29,7 +29,7 @@ file-icon = { git = "https://github.com/UruhaLushia/file-icon-rs.git" }
 getrandom = "0.3"
 keyring = { version = "3", default-features = false }
 rule-converter = { git = "https://github.com/UruhaLushia/rule-converter.git", default-features = false }
-sha2 = "0.10"
+sha2 = "0.11"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 keyring = { version = "3", default-features = false, features = ["apple-native"] }
