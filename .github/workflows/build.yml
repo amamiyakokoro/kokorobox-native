@@ -160,9 +160,11 @@ jobs:
           RUSTFLAGS: -C target-feature=+crt-static
         run: |
           for attempt in 1 2 3; do
-            pnpm exec napi build --platform --release --strip --no-js --dts napi.generated.d.ts --target ${{ matrix.target }} && exit 0
+            pnpm exec napi build --platform --release --strip --no-js --dts napi.generated.d.ts --target ${{ matrix.target }} 2>&1 | tee windows-node-build.log && exit 0
             sleep $((attempt * 10))
           done
+          BUILD_ERROR="$(tail -n 100 windows-node-build.log | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g')"
+          echo "::error title=Windows native build failed::$BUILD_ERROR"
           exit 1
         working-directory: napi
 
