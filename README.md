@@ -93,11 +93,16 @@ plane inside the same native module. It accepts the bounded, versioned JSON
 protocol used to activate and inspect the System Extension and to configure the
 Network Extension. The packet provider remains a separate System Extension.
 
-Windows privilege relaunches are explicit and non-persistent. `launchElevated`
-starts a fresh process through the UAC `runas` verb, while `launchUnelevated`
-starts it with the interactive desktop shell as its logical parent. This avoids
-privileged token duplication. Neither API creates a task, service, startup
-entry, or waits for the child process to exit.
+Windows privilege relaunches are explicit and non-persistent.
+`relaunchCurrentApplicationWithPrivilege` starts a fresh copy of the current
+application through the UAC `runas` verb or with the interactive desktop shell
+as its logical parent. This avoids privileged token duplication. The API does
+not accept an arbitrary executable path, create a task or startup entry, or
+wait for the child process to exit.
+
+Service lifecycle, macOS legacy-service cleanup, managed-service stopping, and
+managed-file permission repair use separate validated APIs. The Node binding
+does not expose an arbitrary elevated-command primitive.
 
 Unix core elevation is deliberately narrow. `setCorePrivileges()` accepts only
 canonical, existing, executable files named `mihomo` or `mihomo-alpha`, rejects

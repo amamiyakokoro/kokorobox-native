@@ -1561,6 +1561,7 @@ dependencies = [
  "file-icon",
  "getrandom 0.4.3",
  "keyring",
+ "libc",
  "objc2",
  "objc2-foundation",
  "objc2-service-management",

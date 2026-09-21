@@ -45,7 +45,8 @@ The full TypeScript declarations are shipped in
 | macOS service | `getMacosManagedServiceStatus`, `registerMacosManagedService`, `unregisterMacosManagedService`, `reloadMacosManagedService`, `openMacosLoginItemsSettings` |
 | macOS application routing | `invokeMacosApplicationRouting` |
 | Core permissions | `getCorePrivilegeStatus`, `setCorePrivileges` |
-| Windows | `getCurrentUserSid`, `isRunningAsAdmin`, `runElevated`, `launchElevated`, `launchUnelevated`, `setupFirewallRules` |
+| Privileged operations | `runServiceLifecycleElevated`, `cleanupLegacyMacosService`, `stopMacosManagedService`, `repairManagedFilePermissions` |
+| Windows | `getCurrentUserSid`, `isRunningAsAdmin`, `relaunchCurrentApplicationWithPrivilege`, `setupFirewallRules` |
 
 `inspectApplication` validates the input for the current platform and resolves
 it to a routing identifier: an executable path on Windows and Linux, or a code
@@ -101,10 +102,15 @@ Windows account, elevation, Firewall, and application-scan APIs report an
 `UNSUPPORTED_PLATFORM:` error on other operating systems instead of behaving as
 no-ops.
 
-`launchElevated(command, args)` and `launchUnelevated(command, args)` start a
-new Windows process without waiting for it. The first presents the standard UAC
-prompt; the second uses the interactive desktop shell token so an elevated app
-can restart at normal user integrity. They do not configure persistent
+`runServiceLifecycleElevated(options)` accepts only the KokoroBox Service
+`init`, `install`, `uninstall`, `start`, `stop`, and `restart` actions. macOS
+legacy-service cleanup, managed-service stopping, and managed-file permission
+repair are separate purpose-specific APIs.
+
+`relaunchCurrentApplicationWithPrivilege(args, elevated)` starts a new copy of
+the current Windows application without accepting an executable path. An
+elevated relaunch presents the standard UAC prompt; the unelevated path uses
+the interactive desktop shell token. It does not configure persistent
 elevation.
 
 ## Contributing

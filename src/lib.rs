@@ -6,6 +6,7 @@ mod icons;
 mod macos_app_routing;
 mod macos_service;
 mod platform;
+mod privileged_operations;
 mod privileges;
 mod rules;
 mod service_identity;
@@ -26,13 +27,15 @@ pub use macos_service::{
     register_macos_managed_service, reload_macos_managed_service, unregister_macos_managed_service,
 };
 #[cfg(not(target_os = "windows"))]
-pub use non_windows::{
-    current_user_sid, is_running_as_admin, launch_elevated, launch_unelevated, run_elevated,
-    setup_firewall_rules,
-};
+pub use non_windows::{current_user_sid, is_running_as_admin, setup_firewall_rules};
 pub use platform::{
     LaunchAtLoginOptions, LaunchAtLoginStatus, NetworkContext, get_launch_at_login,
     get_network_context, set_launch_at_login, wait_for_network_context_change,
+};
+pub use privileged_operations::{
+    ServiceLifecycleAction, ServiceLifecycleOptions, cleanup_legacy_macos_service,
+    relaunch_current_application_with_privilege, repair_managed_file_permissions,
+    run_service_lifecycle, stop_macos_managed_service,
 };
 pub use privileges::{CorePrivilegeStatus, get_core_privilege_status, set_core_privileges};
 pub use rules::{
@@ -43,10 +46,7 @@ pub use service_identity::{
     delete_service_identity, open_service_identity,
 };
 #[cfg(target_os = "windows")]
-pub use windows::{
-    current_user_sid, is_running_as_admin, launch_elevated, launch_unelevated, run_elevated,
-    setup_firewall_rules,
-};
+pub use windows::{current_user_sid, is_running_as_admin, setup_firewall_rules};
 
 #[derive(Debug, Clone)]
 pub struct FirewallRule {

@@ -198,6 +198,38 @@ export function reloadMacosManagedService(plistName: string): MacOSManagedServic
 export function openMacosLoginItemsSettings(): void;
 /** Invoke the versioned macOS Network/System Extension control-plane protocol. */
 export function invokeMacosApplicationRouting(request: string): Promise<string>;
+export type ServiceLifecycleAction =
+  | "init"
+  | "install"
+  | "uninstall"
+  | "start"
+  | "stop"
+  | "restart";
+export interface ServiceLifecycleOptions {
+  executablePath: string;
+  action: ServiceLifecycleAction;
+  publicKey?: string;
+  authorizedSid?: string;
+  authorizedUid?: number;
+}
+/** Run only a validated KokoroBox Service lifecycle action with elevation. */
+export function runServiceLifecycleElevated(options: ServiceLifecycleOptions): Promise<void>;
+/** Remove only the fixed pre-SMAppService KokoroBox LaunchDaemon files. */
+export function cleanupLegacyMacosService(): Promise<void>;
+/** Stop the fixed KokoroBox SMAppService daemon label. */
+export function stopMacosManagedService(): Promise<void>;
+/** Repair one file below a validated managed root for the requested Unix owner. */
+export function repairManagedFilePermissions(
+  target: string,
+  managedRoot: string,
+  uid: number,
+  gid: number,
+): Promise<void>;
+/** Relaunch the current Windows application at the requested privilege level. */
+export function relaunchCurrentApplicationWithPrivilege(
+  args: string[],
+  elevated: boolean,
+): void;
 /** Inspect only validated `mihomo` and `mihomo-alpha` executable paths. */
 export function getCorePrivilegeStatus(paths: string[]): CorePrivilegeStatus[];
 /** Grant or revoke the constrained Unix core-file privilege. */
@@ -213,7 +245,4 @@ export function scanWindowsApplications(
 ): Promise<ApplicationScanResult>;
 export function getCurrentUserSid(): string;
 export function isRunningAsAdmin(): boolean;
-export function runElevated(command: string, args?: string[]): number;
-export function launchElevated(command: string, args?: string[]): void;
-export function launchUnelevated(command: string, args?: string[]): void;
 export function setupFirewallRules(rules: FirewallRule[]): void;

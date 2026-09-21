@@ -20,21 +20,6 @@ pub fn is_running_as_admin() -> Result<bool> {
 }
 
 #[napi]
-pub fn run_elevated(command: String, args: Option<Vec<String>>) -> Result<u32> {
-    kokorobox_native::run_elevated(&command, args.as_deref().unwrap_or(&[])).map_err(map_err)
-}
-
-#[napi]
-pub fn launch_elevated(command: String, args: Option<Vec<String>>) -> Result<()> {
-    kokorobox_native::launch_elevated(&command, args.as_deref().unwrap_or(&[])).map_err(map_err)
-}
-
-#[napi]
-pub fn launch_unelevated(command: String, args: Option<Vec<String>>) -> Result<()> {
-    kokorobox_native::launch_unelevated(&command, args.as_deref().unwrap_or(&[])).map_err(map_err)
-}
-
-#[napi]
 pub fn setup_firewall_rules(rules: Vec<JsFirewallRule>) -> Result<()> {
     let rules = rules
         .into_iter()
