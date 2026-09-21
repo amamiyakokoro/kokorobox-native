@@ -43,6 +43,7 @@ The full TypeScript declarations are shipped in
 | Rules | `fileToStr` |
 | Platform | `getLaunchAtLogin`, `setLaunchAtLogin`, `getNetworkContext` |
 | macOS service | `getMacosManagedServiceStatus`, `registerMacosManagedService`, `unregisterMacosManagedService`, `reloadMacosManagedService`, `openMacosLoginItemsSettings` |
+| macOS application routing | `invokeMacosApplicationRouting` |
 | Core permissions | `getCorePrivilegeStatus`, `setCorePrivileges` |
 | Windows | `getCurrentUserSid`, `isRunningAsAdmin`, `runElevated`, `launchElevated`, `launchUnelevated`, `setupFirewallRules` |
 
@@ -76,6 +77,11 @@ The macOS managed-service functions accept the basename of an embedded
 LaunchDaemon plist and use `SMAppService` directly. They return an explicit
 `requires-approval` state when an administrator must approve the daemon in
 System Settings.
+
+`invokeMacosApplicationRouting(request)` runs the bounded, versioned macOS
+application-routing control-plane protocol off the Node.js main thread. It
+controls the bundled System Extension and Network Extension; packet forwarding
+continues to run in the separate extension process.
 
 Core-file privilege APIs are supported on macOS and Linux. They accept only
 canonical, existing executables named `mihomo` or `mihomo-alpha`; callers cannot

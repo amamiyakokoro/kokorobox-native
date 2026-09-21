@@ -110,6 +110,7 @@ export const registerMacosManagedService = nativeBinding.registerMacosManagedSer
 export const unregisterMacosManagedService = nativeBinding.unregisterMacosManagedService;
 export const reloadMacosManagedService = nativeBinding.reloadMacosManagedService;
 export const openMacosLoginItemsSettings = nativeBinding.openMacosLoginItemsSettings;
+export const invokeMacosApplicationRouting = nativeBinding.invokeMacosApplicationRouting;
 export const getCorePrivilegeStatus = nativeBinding.getCorePrivilegeStatus;
 export const setCorePrivileges = nativeBinding.setCorePrivileges;
 export const inspectApplication = nativeBinding.inspectApplication;

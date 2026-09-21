@@ -4,6 +4,7 @@ mod application;
 mod error;
 mod executables;
 mod icons;
+mod macos_app_routing;
 mod macos_service;
 mod platform;
 mod privileges;

@@ -12,7 +12,7 @@ input; the presenter never connects to Mihomo or handles controller secrets.
 It provides file and application icon helpers, application inspection,
 shell-free executable discovery, rule-set conversion, launch-at-login, macOS
 managed-service and observable network-context helpers, secure service identity,
-constrained Unix core permissions,
+constrained Unix core permissions, macOS application-routing control-plane management,
 and Windows account, elevation, Firewall, and application-scanning integrations.
 
 ## Repository structure
@@ -87,6 +87,11 @@ and SSID timers. `openServiceIdentity()` returns an opaque Ed25519 signer: new
 private keys remain in Windows Credential Manager, macOS Keychain, or Linux
 Secret Service. Linux explicitly reports and uses a mode-0600 file fallback
 when no Secret Service session is available.
+
+`invokeMacosApplicationRouting()` owns the macOS application-routing control
+plane inside the same native module. It accepts the bounded, versioned JSON
+protocol used to activate and inspect the System Extension and to configure the
+Network Extension. The packet provider remains a separate System Extension.
 
 Windows privilege relaunches are explicit and non-persistent. `launchElevated`
 starts a fresh process through the UAC `runas` verb, while `launchUnelevated`

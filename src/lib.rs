@@ -3,6 +3,7 @@
 mod application;
 mod executables;
 mod icons;
+mod macos_app_routing;
 mod macos_service;
 mod platform;
 mod privileges;
@@ -19,6 +20,7 @@ pub use application::{
 };
 pub use executables::{ExecutableCandidate, ExecutableSearchOptions, find_executables};
 pub use icons::{file_to_data_url, get_app_name};
+pub use macos_app_routing::invoke_macos_application_routing;
 pub use macos_service::{
     MacOSManagedServiceStatus, get_macos_managed_service_status, open_macos_login_items_settings,
     register_macos_managed_service, reload_macos_managed_service, unregister_macos_managed_service,
@@ -64,6 +66,7 @@ pub struct NativeCapabilities {
     pub network_context: bool,
     pub network_monitor: bool,
     pub macos_service_management: bool,
+    pub macos_application_routing: bool,
     pub core_file_privileges: bool,
     pub service_identity: bool,
 }
@@ -92,6 +95,7 @@ pub fn native_capabilities() -> NativeCapabilities {
             target_os = "linux"
         )),
         macos_service_management: cfg!(target_os = "macos"),
+        macos_application_routing: cfg!(target_os = "macos"),
         core_file_privileges: cfg!(any(target_os = "macos", target_os = "linux")),
         service_identity: true,
     }

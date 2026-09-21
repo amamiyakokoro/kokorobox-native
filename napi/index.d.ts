@@ -14,6 +14,7 @@ export interface NativeCapabilities {
   networkContext: boolean;
   networkMonitor: boolean;
   macosServiceManagement: boolean;
+  macosApplicationRouting: boolean;
   coreFilePrivileges: boolean;
   serviceIdentity: boolean;
 }
@@ -195,6 +196,8 @@ export function registerMacosManagedService(plistName: string): MacOSManagedServ
 export function unregisterMacosManagedService(plistName: string): MacOSManagedServiceStatus;
 export function reloadMacosManagedService(plistName: string): MacOSManagedServiceStatus;
 export function openMacosLoginItemsSettings(): void;
+/** Invoke the versioned macOS Network/System Extension control-plane protocol. */
+export function invokeMacosApplicationRouting(request: string): Promise<string>;
 /** Inspect only validated `mihomo` and `mihomo-alpha` executable paths. */
 export function getCorePrivilegeStatus(paths: string[]): CorePrivilegeStatus[];
 /** Grant or revoke the constrained Unix core-file privilege. */

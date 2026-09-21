@@ -13,6 +13,7 @@ panic = "abort"
 name = "kokorobox-native"
 version = "0.9.0"
 edition = "2024"
+build = "build.rs"
 license = "GPL-3.0-only"
 description = "KokoroBox native bridge"
 repository = "https://github.com/amamiyakokoro/kokorobox-native"
@@ -30,6 +31,9 @@ getrandom = "0.4"
 keyring = { version = "3", default-features = false }
 rule-converter = { git = "https://github.com/UruhaLushia/rule-converter.git", default-features = false }
 sha2 = "0.11"
+
+[build-dependencies]
+cc = "1"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 keyring = { version = "3", default-features = false, features = ["apple-native"] }
