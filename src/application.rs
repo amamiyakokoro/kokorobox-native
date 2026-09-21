@@ -72,10 +72,6 @@ fn inspect_windows_application(path: PathBuf) -> Result<ApplicationInfo> {
     }
 
     let executable_path = normalize_windows_path(path.clone());
-    let executable_name = path
-        .file_name()
-        .map(|name| name.to_string_lossy().into_owned())
-        .unwrap_or_else(|| executable_path.clone());
     Ok(ApplicationInfo {
         executable_path: executable_path.clone(),
         executable_name: display_name(&path),

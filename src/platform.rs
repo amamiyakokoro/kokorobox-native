@@ -483,7 +483,7 @@ fn run_windows_task_command(arguments: &[String], operation: &str) -> Result<()>
 
 #[cfg(target_os = "windows")]
 fn run_elevated_windows_task_command(arguments: &[String], operation: &str) -> Result<()> {
-    let exit_code = crate::run_elevated("schtasks.exe", arguments)?;
+    let exit_code = crate::windows::run_elevated("schtasks.exe", arguments)?;
     if exit_code != 0 {
         return Err(anyhow!(
             "Unable to {operation} legacy launch-at-login task (exit code: {exit_code})"
