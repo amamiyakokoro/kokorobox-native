@@ -4,7 +4,7 @@ pub fn list_uwp_loopback_apps() -> anyhow::Result<Vec<UwpLoopbackApp>> {
     Err(windows_only("list_uwp_loopback_apps"))
 }
 
-pub fn set_uwp_loopback_exemption(_sid: &str, _enabled: bool) -> anyhow::Result<()> {
+pub fn set_uwp_loopback_exemption(_id: &str, _enabled: bool) -> anyhow::Result<()> {
     Err(windows_only("set_uwp_loopback_exemption"))
 }
 

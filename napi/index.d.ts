@@ -1,8 +1,15 @@
 export interface UwpLoopbackApp {
-  sid: string;
-  packageName: string;
+  /** Opaque identifier used only when changing this app's loopback exemption. */
+  id: string;
+  packageFamilyName: string;
+  packageFullName?: string;
   displayName: string;
+  description?: string;
   enabled: boolean;
+  category: "user" | "microsoft" | "system";
+  packageType?: "main" | "framework" | "resource" | "optional";
+  framework: boolean;
+  resourcePackage: boolean;
 }
 
 export interface NativeCapabilities {
@@ -295,4 +302,4 @@ export function ensureKokoroBoxCoreFirewall(
   applicationPath: string,
 ): void;
 export function listUwpLoopbackApps(): UwpLoopbackApp[];
-export function setUwpLoopbackExemption(sid: string, enabled: boolean): void;
+export function setUwpLoopbackExemption(id: string, enabled: boolean): void;

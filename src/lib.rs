@@ -65,14 +65,56 @@ pub use windows::{
 #[cfg(not(target_os = "windows"))]
 #[derive(Debug, Clone)]
 pub struct UwpLoopbackApp {
-    pub sid: String,
-    pub package_name: String,
+    pub id: String,
+    pub package_family_name: String,
+    pub package_full_name: Option<String>,
     pub display_name: String,
+    pub description: Option<String>,
     pub enabled: bool,
+    pub category: UwpLoopbackAppCategory,
+    pub package_type: Option<UwpLoopbackPackageType>,
+    pub framework: bool,
+    pub resource_package: bool,
 }
 
 #[cfg(target_os = "windows")]
 pub use windows::UwpLoopbackApp;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UwpLoopbackAppCategory {
+    User,
+    Microsoft,
+    System,
+}
+
+impl UwpLoopbackAppCategory {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::User => "user",
+            Self::Microsoft => "microsoft",
+            Self::System => "system",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UwpLoopbackPackageType {
+    Main,
+    Framework,
+    Resource,
+    Optional,
+}
+
+impl UwpLoopbackPackageType {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Main => "main",
+            Self::Framework => "framework",
+            Self::Resource => "resource",
+            Self::Optional => "optional",
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy)]
 pub struct NativeCapabilities {
