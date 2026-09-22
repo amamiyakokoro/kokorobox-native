@@ -27,7 +27,10 @@ pub use macos_service::{
     register_macos_managed_service, reload_macos_managed_service, unregister_macos_managed_service,
 };
 #[cfg(not(target_os = "windows"))]
-pub use non_windows::{current_user_sid, is_running_as_admin, setup_firewall_rules};
+pub use non_windows::{
+    current_user_sid, is_running_as_admin, list_uwp_loopback_apps, set_uwp_loopback_exemption,
+    setup_firewall_rules,
+};
 pub use platform::{
     LaunchAtLoginOptions, LaunchAtLoginStatus, NetworkContext, get_launch_at_login,
     get_network_context, set_active_network_dns, set_launch_at_login,
@@ -47,7 +50,22 @@ pub use service_identity::{
     delete_service_identity, open_service_identity,
 };
 #[cfg(target_os = "windows")]
-pub use windows::{current_user_sid, is_running_as_admin, setup_firewall_rules};
+pub use windows::{
+    current_user_sid, is_running_as_admin, list_uwp_loopback_apps, set_uwp_loopback_exemption,
+    setup_firewall_rules,
+};
+
+#[cfg(not(target_os = "windows"))]
+#[derive(Debug, Clone)]
+pub struct UwpLoopbackApp {
+    pub sid: String,
+    pub package_name: String,
+    pub display_name: String,
+    pub enabled: bool,
+}
+
+#[cfg(target_os = "windows")]
+pub use windows::UwpLoopbackApp;
 
 #[derive(Debug, Clone)]
 pub struct FirewallRule {

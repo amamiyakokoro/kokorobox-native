@@ -4,6 +4,35 @@ use napi_derive::napi;
 use crate::error::map_err;
 
 #[napi(object)]
+pub struct JsUwpLoopbackApp {
+    pub sid: String,
+    pub package_name: String,
+    pub display_name: String,
+    pub enabled: bool,
+}
+
+#[napi]
+pub fn list_uwp_loopback_apps() -> Result<Vec<JsUwpLoopbackApp>> {
+    kokorobox_native::list_uwp_loopback_apps()
+        .map(|apps| {
+            apps.into_iter()
+                .map(|app| JsUwpLoopbackApp {
+                    sid: app.sid,
+                    package_name: app.package_name,
+                    display_name: app.display_name,
+                    enabled: app.enabled,
+                })
+                .collect()
+        })
+        .map_err(map_err)
+}
+
+#[napi]
+pub fn set_uwp_loopback_exemption(sid: String, enabled: bool) -> Result<()> {
+    kokorobox_native::set_uwp_loopback_exemption(&sid, enabled).map_err(map_err)
+}
+
+#[napi(object)]
 pub struct JsFirewallRule {
     pub name: String,
     pub application_path: String,

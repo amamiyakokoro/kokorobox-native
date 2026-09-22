@@ -1,4 +1,13 @@
 use crate::FirewallRule;
+use crate::UwpLoopbackApp;
+
+pub fn list_uwp_loopback_apps() -> anyhow::Result<Vec<UwpLoopbackApp>> {
+    Err(windows_only("list_uwp_loopback_apps"))
+}
+
+pub fn set_uwp_loopback_exemption(_sid: &str, _enabled: bool) -> anyhow::Result<()> {
+    Err(windows_only("set_uwp_loopback_exemption"))
+}
 
 fn windows_only(operation: &str) -> anyhow::Error {
     anyhow::anyhow!("UNSUPPORTED_PLATFORM: {operation} is only available on Windows")

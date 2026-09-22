@@ -3,6 +3,13 @@ export interface FirewallRule {
   applicationPath: string;
 }
 
+export interface UwpLoopbackApp {
+  sid: string;
+  packageName: string;
+  displayName: string;
+  enabled: boolean;
+}
+
 export interface NativeCapabilities {
   applicationInspection: boolean;
   executableDiscovery: boolean;
@@ -248,3 +255,5 @@ export function scanWindowsApplications(
 export function getCurrentUserSid(): string;
 export function isRunningAsAdmin(): boolean;
 export function setupFirewallRules(rules: FirewallRule[]): void;
+export function listUwpLoopbackApps(): UwpLoopbackApp[];
+export function setUwpLoopbackExemption(sid: string, enabled: boolean): void;
