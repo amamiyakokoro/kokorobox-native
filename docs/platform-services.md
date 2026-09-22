@@ -4,6 +4,18 @@ This document defines the platform-dependent APIs owned by
 `kokorobox-native`. Callers should use `getNativeCapabilities()` instead of
 inferring support from the operating-system name.
 
+The capability object exposes operation-level support for optional mutations:
+
+- `networkDnsMutation` gates `setActiveNetworkDns`.
+- `serviceLifecycle` gates `runServiceLifecycleElevated`.
+- `managedFilePermissions` gates `repairManagedFilePermissions`.
+- `windowsPrivilegeRelaunch` gates `relaunchCurrentApplicationWithPrivilege`.
+- `windowsUwpLoopback` gates `listUwpLoopbackApps` and `setUwpLoopbackExemption`.
+
+These flags are deliberately separate from broader discovery, elevation, and
+account capabilities so consumers do not assume that one native mechanism
+implies another.
+
 ## Network context
 
 `getNetworkContext()` returns a best-effort snapshot:

@@ -20,8 +20,13 @@ export interface NativeCapabilities {
   launchAtLogin: boolean;
   networkContext: boolean;
   networkMonitor: boolean;
+  networkDnsMutation: boolean;
+  serviceLifecycle: boolean;
+  managedFilePermissions: boolean;
   macosServiceManagement: boolean;
   macosApplicationRouting: boolean;
+  windowsPrivilegeRelaunch: boolean;
+  windowsUwpLoopback: boolean;
   coreFilePrivileges: boolean;
   serviceIdentity: boolean;
 }

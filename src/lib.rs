@@ -84,8 +84,13 @@ pub struct NativeCapabilities {
     pub launch_at_login: bool,
     pub network_context: bool,
     pub network_monitor: bool,
+    pub network_dns_mutation: bool,
+    pub service_lifecycle: bool,
+    pub managed_file_permissions: bool,
     pub macos_service_management: bool,
     pub macos_application_routing: bool,
+    pub windows_privilege_relaunch: bool,
+    pub windows_uwp_loopback: bool,
     pub core_file_privileges: bool,
     pub service_identity: bool,
 }
@@ -113,9 +118,50 @@ pub fn native_capabilities() -> NativeCapabilities {
             target_os = "macos",
             target_os = "linux"
         )),
+        network_dns_mutation: cfg!(target_os = "macos"),
+        service_lifecycle: cfg!(any(
+            target_os = "windows",
+            target_os = "macos",
+            target_os = "linux"
+        )),
+        managed_file_permissions: cfg!(any(target_os = "macos", target_os = "linux")),
         macos_service_management: cfg!(target_os = "macos"),
         macos_application_routing: cfg!(target_os = "macos"),
+        windows_privilege_relaunch: cfg!(target_os = "windows"),
+        windows_uwp_loopback: cfg!(target_os = "windows"),
         core_file_privileges: cfg!(any(target_os = "macos", target_os = "linux")),
         service_identity: true,
+    }
+}
+
+#[cfg(test)]
+mod capability_tests {
+    use super::*;
+
+    #[test]
+    fn reports_platform_specific_operation_boundaries() {
+        let capabilities = native_capabilities();
+
+        assert_eq!(capabilities.network_dns_mutation, cfg!(target_os = "macos"));
+        assert_eq!(
+            capabilities.service_lifecycle,
+            cfg!(any(
+                target_os = "windows",
+                target_os = "macos",
+                target_os = "linux"
+            ))
+        );
+        assert_eq!(
+            capabilities.managed_file_permissions,
+            cfg!(any(target_os = "macos", target_os = "linux"))
+        );
+        assert_eq!(
+            capabilities.windows_privilege_relaunch,
+            cfg!(target_os = "windows")
+        );
+        assert_eq!(
+            capabilities.windows_uwp_loopback,
+            cfg!(target_os = "windows")
+        );
     }
 }

@@ -66,6 +66,12 @@ which features were compiled into the loaded binary. Windows-only APIs—SID
 lookup, elevation, Firewall management, and directory scanning—fail with an
 `UNSUPPORTED_PLATFORM:` error outside Windows; they do not silently succeed.
 
+Capability flags follow operation boundaries rather than broad operating-system
+checks. In particular, callers can independently detect active-network DNS
+mutation, elevated service lifecycle operations, managed-file permission
+repair, Windows privilege relaunch, and Windows UWP loopback management. A
+platform name alone is not proof that an optional integration was compiled in.
+
 `inspectApplication(path)` and `scanWindowsApplications(directory)` run off the
 Node.js main thread. Application inspection returns a stable routing identifier,
 a display name, and an optional icon data URL. The Windows scanner skips links,

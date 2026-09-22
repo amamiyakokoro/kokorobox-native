@@ -102,6 +102,20 @@ Windows account, elevation, Firewall, and application-scan APIs report an
 `UNSUPPORTED_PLATFORM:` error on other operating systems instead of behaving as
 no-ops.
 
+The capability contract includes dedicated flags for APIs that have narrower
+support than the package itself:
+
+| Capability | Supported platforms |
+| --- | --- |
+| `networkDnsMutation` | macOS |
+| `serviceLifecycle` | Windows, macOS, Linux |
+| `managedFilePermissions` | macOS, Linux |
+| `windowsPrivilegeRelaunch` | Windows |
+| `windowsUwpLoopback` | Windows |
+
+Use these flags instead of inferring availability from `process.platform` or
+from a related but broader capability.
+
 `runServiceLifecycleElevated(options)` accepts only the KokoroBox Service
 `init`, `install`, `uninstall`, `start`, `stop`, and `restart` actions. macOS
 legacy-service cleanup, managed-service stopping, and managed-file permission
