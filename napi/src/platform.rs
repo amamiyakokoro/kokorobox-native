@@ -148,29 +148,6 @@ pub fn get_network_context() -> AsyncTask<GetNetworkContextTask> {
     AsyncTask::new(GetNetworkContextTask)
 }
 
-pub struct SetActiveNetworkDnsTask {
-    servers: Vec<String>,
-}
-
-#[napi]
-impl Task for SetActiveNetworkDnsTask {
-    type Output = ();
-    type JsValue = ();
-
-    fn compute(&mut self) -> Result<Self::Output> {
-        kokorobox_native::set_active_network_dns(&self.servers).map_err(map_err)
-    }
-
-    fn resolve(&mut self, _env: Env, _output: Self::Output) -> Result<Self::JsValue> {
-        Ok(())
-    }
-}
-
-#[napi]
-pub fn set_active_network_dns(servers: Vec<String>) -> AsyncTask<SetActiveNetworkDnsTask> {
-    AsyncTask::new(SetActiveNetworkDnsTask { servers })
-}
-
 pub struct WaitForNetworkContextChangeTask {
     previous: kokorobox_native::NetworkContext,
     timeout_ms: u32,

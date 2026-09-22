@@ -1,8 +1,3 @@
-export interface FirewallRule {
-  name: string;
-  applicationPath: string;
-}
-
 export interface UwpLoopbackApp {
   sid: string;
   packageName: string;
@@ -20,7 +15,6 @@ export interface NativeCapabilities {
   launchAtLogin: boolean;
   networkContext: boolean;
   networkMonitor: boolean;
-  networkDnsMutation: boolean;
   serviceLifecycle: boolean;
   managedFilePermissions: boolean;
   macosServiceManagement: boolean;
@@ -197,8 +191,6 @@ export function setLaunchAtLogin(
   enabled: boolean,
 ): Promise<LaunchAtLoginStatus>;
 export function getNetworkContext(): Promise<NetworkContext>;
-/** Set DNS on the active macOS network service; [] restores automatic DNS. */
-export function setActiveNetworkDns(servers: string[]): Promise<void>;
 /** Resolve when the native network snapshot changes, or `undefined` on timeout. */
 export function waitForNetworkContextChange(
   previous: NetworkContext,
@@ -292,6 +284,10 @@ export function scanWindowsApplications(
 ): Promise<ApplicationScanResult>;
 export function getCurrentUserSid(): string;
 export function isRunningAsAdmin(): boolean;
-export function setupFirewallRules(rules: FirewallRule[]): void;
+export function ensureKokoroBoxCoreFirewall(
+  mihomoPath: string,
+  mihomoAlphaPath: string,
+  applicationPath: string,
+): void;
 export function listUwpLoopbackApps(): UwpLoopbackApp[];
 export function setUwpLoopbackExemption(sid: string, enabled: boolean): void;

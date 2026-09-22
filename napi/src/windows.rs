@@ -32,12 +32,6 @@ pub fn set_uwp_loopback_exemption(sid: String, enabled: bool) -> Result<()> {
     kokorobox_native::set_uwp_loopback_exemption(&sid, enabled).map_err(map_err)
 }
 
-#[napi(object)]
-pub struct JsFirewallRule {
-    pub name: String,
-    pub application_path: String,
-}
-
 #[napi]
 pub fn get_current_user_sid() -> Result<String> {
     kokorobox_native::current_user_sid().map_err(map_err)
@@ -49,13 +43,15 @@ pub fn is_running_as_admin() -> Result<bool> {
 }
 
 #[napi]
-pub fn setup_firewall_rules(rules: Vec<JsFirewallRule>) -> Result<()> {
-    let rules = rules
-        .into_iter()
-        .map(|rule| kokorobox_native::FirewallRule {
-            name: rule.name,
-            application_path: rule.application_path,
-        })
-        .collect();
-    kokorobox_native::setup_firewall_rules(rules).map_err(map_err)
+pub fn ensure_kokoro_box_core_firewall(
+    mihomo_path: String,
+    mihomo_alpha_path: String,
+    application_path: String,
+) -> Result<()> {
+    kokorobox_native::ensure_kokoro_box_core_firewall(
+        &mihomo_path,
+        &mihomo_alpha_path,
+        &application_path,
+    )
+    .map_err(map_err)
 }

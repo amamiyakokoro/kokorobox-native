@@ -34,13 +34,12 @@ pub use macos_service::{
 };
 #[cfg(not(target_os = "windows"))]
 pub use non_windows::{
-    current_user_sid, is_running_as_admin, list_uwp_loopback_apps, set_uwp_loopback_exemption,
-    setup_firewall_rules,
+    current_user_sid, ensure_kokoro_box_core_firewall, is_running_as_admin, list_uwp_loopback_apps,
+    set_uwp_loopback_exemption,
 };
 pub use platform::{
     LaunchAtLoginOptions, LaunchAtLoginStatus, NetworkContext, get_launch_at_login,
-    get_network_context, set_active_network_dns, set_launch_at_login,
-    wait_for_network_context_change,
+    get_network_context, set_launch_at_login, wait_for_network_context_change,
 };
 pub use privileged_operations::{
     ServiceLifecycleAction, ServiceLifecycleOptions, cleanup_legacy_macos_service,
@@ -57,8 +56,8 @@ pub use service_identity::{
 };
 #[cfg(target_os = "windows")]
 pub use windows::{
-    current_user_sid, is_running_as_admin, list_uwp_loopback_apps, set_uwp_loopback_exemption,
-    setup_firewall_rules,
+    current_user_sid, ensure_kokoro_box_core_firewall, is_running_as_admin, list_uwp_loopback_apps,
+    set_uwp_loopback_exemption,
 };
 
 #[cfg(not(target_os = "windows"))]
@@ -73,12 +72,6 @@ pub struct UwpLoopbackApp {
 #[cfg(target_os = "windows")]
 pub use windows::UwpLoopbackApp;
 
-#[derive(Debug, Clone)]
-pub struct FirewallRule {
-    pub name: String,
-    pub application_path: String,
-}
-
 #[derive(Debug, Clone, Copy)]
 pub struct NativeCapabilities {
     pub application_inspection: bool,
@@ -90,7 +83,6 @@ pub struct NativeCapabilities {
     pub launch_at_login: bool,
     pub network_context: bool,
     pub network_monitor: bool,
-    pub network_dns_mutation: bool,
     pub service_lifecycle: bool,
     pub managed_file_permissions: bool,
     pub macos_service_management: bool,
@@ -124,7 +116,6 @@ pub fn native_capabilities() -> NativeCapabilities {
             target_os = "macos",
             target_os = "linux"
         )),
-        network_dns_mutation: cfg!(target_os = "macos"),
         service_lifecycle: cfg!(any(
             target_os = "windows",
             target_os = "macos",
@@ -148,7 +139,6 @@ mod capability_tests {
     fn reports_platform_specific_operation_boundaries() {
         let capabilities = native_capabilities();
 
-        assert_eq!(capabilities.network_dns_mutation, cfg!(target_os = "macos"));
         assert_eq!(
             capabilities.service_lifecycle,
             cfg!(any(

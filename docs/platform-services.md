@@ -6,7 +6,6 @@ inferring support from the operating-system name.
 
 The capability object exposes operation-level support for optional mutations:
 
-- `networkDnsMutation` gates `setActiveNetworkDns`.
 - `serviceLifecycle` gates `runServiceLifecycleElevated`.
 - `managedFilePermissions` gates `repairManagedFilePermissions`.
 - `windowsPrivilegeRelaunch` gates `relaunchCurrentApplicationWithPrivilege`.
@@ -15,6 +14,9 @@ The capability object exposes operation-level support for optional mutations:
 These flags are deliberately separate from broader discovery, elevation, and
 account capabilities so consumers do not assume that one native mechanism
 implies another.
+
+DNS changes are owned by KokoroBox Service's lease and recovery flow. Native
+exposes network context for observation but does not write DNS settings.
 
 ## Network context
 

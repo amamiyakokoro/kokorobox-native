@@ -97,46 +97,6 @@ pub fn get_network_context() -> Result<NetworkContext> {
     Ok(platform_network_context())
 }
 
-/// Apply DNS servers to the currently active macOS network service.
-/// An empty list removes manual DNS servers and returns the service to DHCP.
-pub fn set_active_network_dns(servers: &[String]) -> Result<()> {
-    for server in servers {
-        server
-            .parse::<std::net::IpAddr>()
-            .map_err(|_| anyhow!("Invalid DNS server address: {server}"))?;
-    }
-
-    #[cfg(target_os = "macos")]
-    {
-        let service = get_network_context()?
-            .default_service
-            .ok_or_else(|| anyhow!("No active network service"))?;
-        let mut command = std::process::Command::new("networksetup");
-        command.arg("-setdnsservers").arg(&service);
-        if servers.is_empty() {
-            command.arg("Empty");
-        } else {
-            command.args(servers);
-        }
-        let output = command.output()?;
-        if !output.status.success() {
-            return Err(anyhow!(
-                "Failed to set DNS for {service}: {}",
-                String::from_utf8_lossy(&output.stderr).trim()
-            ));
-        }
-        Ok(())
-    }
-
-    #[cfg(not(target_os = "macos"))]
-    {
-        let _ = servers;
-        Err(anyhow!(
-            "Active network DNS mutation is supported only on macOS"
-        ))
-    }
-}
-
 /// Wait until the native network snapshot changes, or until the timeout expires.
 ///
 /// Keeping this wait in the native layer gives all frontends one cross-platform

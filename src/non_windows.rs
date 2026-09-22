@@ -1,4 +1,3 @@
-use crate::FirewallRule;
 use crate::UwpLoopbackApp;
 
 pub fn list_uwp_loopback_apps() -> anyhow::Result<Vec<UwpLoopbackApp>> {
@@ -21,8 +20,12 @@ pub fn is_running_as_admin() -> anyhow::Result<bool> {
     Err(windows_only("is_running_as_admin"))
 }
 
-pub fn setup_firewall_rules(_rules: Vec<FirewallRule>) -> anyhow::Result<()> {
-    Err(windows_only("setup_firewall_rules"))
+pub fn ensure_kokoro_box_core_firewall(
+    _mihomo_path: &str,
+    _mihomo_alpha_path: &str,
+    _application_path: &str,
+) -> anyhow::Result<()> {
+    Err(windows_only("ensure_kokoro_box_core_firewall"))
 }
 
 #[cfg(test)]
@@ -34,6 +37,6 @@ mod tests {
         let error = current_user_sid().unwrap_err();
         assert!(error.to_string().starts_with("UNSUPPORTED_PLATFORM:"));
         assert!(is_running_as_admin().is_err());
-        assert!(setup_firewall_rules(Vec::new()).is_err());
+        assert!(ensure_kokoro_box_core_firewall("", "", "").is_err());
     }
 }

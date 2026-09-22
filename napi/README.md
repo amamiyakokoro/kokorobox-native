@@ -46,7 +46,7 @@ The full TypeScript declarations are shipped in
 | macOS application routing | `applyMacosApplicationRouting`, `getMacosApplicationRoutingStatus`, `stopMacosApplicationRouting`, `openMacosApplicationRoutingSettings` |
 | Core permissions | `getCorePrivilegeStatus`, `setCorePrivileges` |
 | Privileged operations | `runServiceLifecycleElevated`, `cleanupLegacyMacosService`, `stopMacosManagedService`, `repairManagedFilePermissions` |
-| Windows | `getCurrentUserSid`, `isRunningAsAdmin`, `relaunchCurrentApplicationWithPrivilege`, `setupFirewallRules` |
+| Windows | `getCurrentUserSid`, `isRunningAsAdmin`, `relaunchCurrentApplicationWithPrivilege`, `ensureKokoroBoxCoreFirewall` |
 
 `inspectApplication` validates the input for the current platform and resolves
 it to a routing identifier: an executable path on Windows and Linux, or a code
@@ -58,6 +58,10 @@ list.
 `PATH`, and platform-standard binary locations without spawning command-line
 tools. It returns canonical paths for stable deduplication; prefix matching is
 available only when explicitly requested.
+
+`ensureKokoroBoxCoreFirewall` accepts the two Mihomo executable paths and the
+KokoroBox application path. Native fixes the three rule names and validates
+the executable basenames before changing Windows Firewall state.
 
 `fileToStr` converts a rule file and returns each generated output keyed by its
 behavior, metadata for those outputs, and rules that were skipped. Its optional
@@ -108,7 +112,6 @@ support than the package itself:
 
 | Capability | Supported platforms |
 | --- | --- |
-| `networkDnsMutation` | macOS |
 | `serviceLifecycle` | Windows, macOS, Linux |
 | `managedFilePermissions` | macOS, Linux |
 | `windowsPrivilegeRelaunch` | Windows |
