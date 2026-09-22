@@ -1566,6 +1566,8 @@ dependencies = [
  "objc2-foundation",
  "objc2-service-management",
  "rule-converter",
+ "serde",
+ "serde_json",
  "sha2 0.11.0",
  "system-configuration",
  "windows",

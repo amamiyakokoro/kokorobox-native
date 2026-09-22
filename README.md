@@ -94,10 +94,10 @@ private keys remain in Windows Credential Manager, macOS Keychain, or Linux
 Secret Service. Linux explicitly reports and uses a mode-0600 file fallback
 when no Secret Service session is available.
 
-`invokeMacosApplicationRouting()` owns the macOS application-routing control
-plane inside the same native module. It accepts the bounded, versioned JSON
-protocol used to activate and inspect the System Extension and to configure the
-Network Extension. The packet provider remains a separate System Extension.
+The typed macOS application-routing APIs own the control plane inside the same
+native module. Callers apply a bounded policy or request status, stop, and
+Settings operations without constructing the internal versioned JSON protocol.
+The packet provider remains a separate System Extension.
 
 Windows privilege relaunches are explicit and non-persistent.
 `relaunchCurrentApplicationWithPrivilege` starts a fresh copy of the current

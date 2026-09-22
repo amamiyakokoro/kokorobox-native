@@ -210,8 +210,41 @@ export function registerMacosManagedService(plistName: string): MacOSManagedServ
 export function unregisterMacosManagedService(plistName: string): MacOSManagedServiceStatus;
 export function reloadMacosManagedService(plistName: string): MacOSManagedServiceStatus;
 export function openMacosLoginItemsSettings(): void;
-/** Invoke the versioned macOS Network/System Extension control-plane protocol. */
-export function invokeMacosApplicationRouting(request: string): Promise<string>;
+export type MacosApplicationRoutingIdentifierKind = "SIGNING_IDENTIFIER" | "PROCESS_NAME";
+export type MacosApplicationRoutingProtocol = "TCP" | "UDP" | "BOTH";
+export type MacosApplicationRoutingAction = "PROXY" | "DIRECT" | "BLOCK";
+export type MacosApplicationRoutingState =
+  | "disabled"
+  | "starting"
+  | "running"
+  | "stopping"
+  | "error";
+export interface MacosApplicationRoutingRule {
+  signingIdentifier: string;
+  identifierKind: MacosApplicationRoutingIdentifierKind;
+  ruleProtocol: MacosApplicationRoutingProtocol;
+  action: MacosApplicationRoutingAction;
+  enabled: boolean;
+  priority: number;
+}
+export interface MacosApplicationRoutingConfiguration {
+  proxyAvailable: boolean;
+  proxyUdpDns: boolean;
+  diagnosticLogging: boolean;
+  rules: MacosApplicationRoutingRule[];
+}
+export interface MacosApplicationRoutingStatus {
+  state: MacosApplicationRoutingState;
+  needsUserApproval: boolean;
+  message?: string;
+}
+/** Apply a bounded policy through the macOS Network/System Extension control plane. */
+export function applyMacosApplicationRouting(
+  configuration: MacosApplicationRoutingConfiguration,
+): Promise<MacosApplicationRoutingStatus>;
+export function getMacosApplicationRoutingStatus(): Promise<MacosApplicationRoutingStatus>;
+export function stopMacosApplicationRouting(): Promise<MacosApplicationRoutingStatus>;
+export function openMacosApplicationRoutingSettings(): Promise<MacosApplicationRoutingStatus>;
 export type ServiceLifecycleAction =
   | "init"
   | "install"

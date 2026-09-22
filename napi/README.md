@@ -43,7 +43,7 @@ The full TypeScript declarations are shipped in
 | Rules | `fileToStr` |
 | Platform | `getLaunchAtLogin`, `setLaunchAtLogin`, `getNetworkContext` |
 | macOS service | `getMacosManagedServiceStatus`, `registerMacosManagedService`, `unregisterMacosManagedService`, `reloadMacosManagedService`, `openMacosLoginItemsSettings` |
-| macOS application routing | `invokeMacosApplicationRouting` |
+| macOS application routing | `applyMacosApplicationRouting`, `getMacosApplicationRoutingStatus`, `stopMacosApplicationRouting`, `openMacosApplicationRoutingSettings` |
 | Core permissions | `getCorePrivilegeStatus`, `setCorePrivileges` |
 | Privileged operations | `runServiceLifecycleElevated`, `cleanupLegacyMacosService`, `stopMacosManagedService`, `repairManagedFilePermissions` |
 | Windows | `getCurrentUserSid`, `isRunningAsAdmin`, `relaunchCurrentApplicationWithPrivilege`, `setupFirewallRules` |
@@ -79,10 +79,11 @@ LaunchDaemon plist and use `SMAppService` directly. They return an explicit
 `requires-approval` state when an administrator must approve the daemon in
 System Settings.
 
-`invokeMacosApplicationRouting(request)` runs the bounded, versioned macOS
-application-routing control-plane protocol off the Node.js main thread. It
-controls the bundled System Extension and Network Extension; packet forwarding
-continues to run in the separate extension process.
+The macOS application-routing functions run the bounded control plane off the
+Node.js main thread. Their typed configuration omits fixed protocol details
+such as version, fail-closed behavior, loopback hosts, and reserved ports; the
+native layer owns and validates that wire envelope. Packet forwarding continues
+to run in the separate System Extension process.
 
 Core-file privilege APIs are supported on macOS and Linux. They accept only
 canonical, existing executables named `mihomo` or `mihomo-alpha`; callers cannot

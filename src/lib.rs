@@ -21,7 +21,13 @@ pub use application::{
 };
 pub use executables::{ExecutableCandidate, ExecutableSearchOptions, find_executables};
 pub use icons::{file_to_data_url, get_app_name};
-pub use macos_app_routing::invoke_macos_application_routing;
+pub use macos_app_routing::{
+    MacosApplicationRoutingAction, MacosApplicationRoutingConfiguration,
+    MacosApplicationRoutingIdentifierKind, MacosApplicationRoutingProtocol,
+    MacosApplicationRoutingRule, MacosApplicationRoutingState, MacosApplicationRoutingStatus,
+    apply_macos_application_routing, get_macos_application_routing_status,
+    open_macos_application_routing_settings, stop_macos_application_routing,
+};
 pub use macos_service::{
     MacOSManagedServiceStatus, get_macos_managed_service_status, open_macos_login_items_settings,
     register_macos_managed_service, reload_macos_managed_service, unregister_macos_managed_service,
@@ -163,5 +169,23 @@ mod capability_tests {
             capabilities.windows_uwp_loopback,
             cfg!(target_os = "windows")
         );
+    }
+
+    #[test]
+    fn exposes_typed_macos_application_routing_contract() {
+        let declarations = include_str!("../napi/index.d.ts");
+        let javascript = include_str!("../napi/index.js");
+
+        for export in [
+            "applyMacosApplicationRouting",
+            "getMacosApplicationRoutingStatus",
+            "stopMacosApplicationRouting",
+            "openMacosApplicationRoutingSettings",
+        ] {
+            assert!(declarations.contains(export));
+            assert!(javascript.contains(export));
+        }
+        assert!(!declarations.contains("invokeMacosApplicationRouting"));
+        assert!(!javascript.contains("invokeMacosApplicationRouting"));
     }
 }
