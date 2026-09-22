@@ -23,6 +23,7 @@ export interface NativeCapabilities {
   windowsUwpLoopback: boolean;
   coreFilePrivileges: boolean;
   serviceIdentity: boolean;
+  linuxTerminalProxy: boolean;
 }
 
 export interface ExecutableSearchOptions {
@@ -182,6 +183,10 @@ export function fileToStr(
 ): RuleStringResult;
 export function getAppName(path: string): string;
 export function getNativeCapabilities(): NativeCapabilities;
+/** Write KokoroBox's Linux user-session proxy file and update systemd --user over D-Bus. */
+export function setTerminalProxyEnvironment(host: string, port: number, bypass: string[]): Promise<boolean>;
+/** Remove only KokoroBox's Linux user-session proxy file and clear its session variables. */
+export function clearTerminalProxyEnvironment(): Promise<boolean | null>;
 /** Resolve the executable shipped beside the current platform binding. */
 export function getTrafficPresenterPath(): string;
 export function findExecutables(options: ExecutableSearchOptions): Promise<ExecutableCandidate[]>;

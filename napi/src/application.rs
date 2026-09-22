@@ -22,6 +22,7 @@ pub struct JsNativeCapabilities {
     pub windows_uwp_loopback: bool,
     pub core_file_privileges: bool,
     pub service_identity: bool,
+    pub linux_terminal_proxy: bool,
 }
 
 #[napi(object)]
@@ -73,6 +74,7 @@ pub fn get_native_capabilities() -> JsNativeCapabilities {
         windows_uwp_loopback: capabilities.windows_uwp_loopback,
         core_file_privileges: capabilities.core_file_privileges,
         service_identity: capabilities.service_identity,
+        linux_terminal_proxy: capabilities.linux_terminal_proxy,
     }
 }
 

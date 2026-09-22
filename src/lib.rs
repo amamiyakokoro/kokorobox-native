@@ -10,6 +10,7 @@ mod privileged_operations;
 mod privileges;
 mod rules;
 mod service_identity;
+mod terminal_proxy;
 
 #[cfg(not(target_os = "windows"))]
 mod non_windows;
@@ -54,6 +55,7 @@ pub use service_identity::{
     LegacyServiceIdentity, ServiceIdentity, ServiceIdentityInfo, ServiceIdentityOptions,
     delete_service_identity, open_service_identity,
 };
+pub use terminal_proxy::{clear_terminal_proxy_environment, set_terminal_proxy_environment};
 #[cfg(target_os = "windows")]
 pub use windows::{
     current_user_sid, ensure_kokoro_box_core_firewall, is_running_as_admin, list_uwp_loopback_apps,
@@ -91,6 +93,7 @@ pub struct NativeCapabilities {
     pub windows_uwp_loopback: bool,
     pub core_file_privileges: bool,
     pub service_identity: bool,
+    pub linux_terminal_proxy: bool,
 }
 
 pub fn native_capabilities() -> NativeCapabilities {
@@ -128,6 +131,7 @@ pub fn native_capabilities() -> NativeCapabilities {
         windows_uwp_loopback: cfg!(target_os = "windows"),
         core_file_privileges: cfg!(any(target_os = "macos", target_os = "linux")),
         service_identity: true,
+        linux_terminal_proxy: cfg!(target_os = "linux"),
     }
 }
 
@@ -159,6 +163,7 @@ mod capability_tests {
             capabilities.windows_uwp_loopback,
             cfg!(target_os = "windows")
         );
+        assert_eq!(capabilities.linux_terminal_proxy, cfg!(target_os = "linux"));
     }
 
     #[test]

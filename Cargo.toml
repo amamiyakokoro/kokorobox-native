@@ -11,7 +11,7 @@ panic = "abort"
 
 [package]
 name = "kokorobox-native"
-version = "0.13.0"
+version = "0.14.0"
 edition = "2024"
 build = "build.rs"
 license = "GPL-3.0-only"
@@ -71,6 +71,7 @@ windows = { version = "0.62", features = [
 ] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
+zbus = "5.19"
 keyring = { version = "3", default-features = false, features = [
     "crypto-rust",
     "linux-native-sync-persistent",

@@ -18,6 +18,15 @@ implies another.
 DNS changes are owned by KokoroBox Service's lease and recovery flow. Native
 exposes network context for observation but does not write DNS settings.
 
+Linux terminal proxy environment is a per-user session operation. Native writes
+only `~/.config/environment.d/90-kokorobox-proxy.conf` (or the absolute
+`XDG_CONFIG_HOME` equivalent) and calls the systemd user manager's
+`SetEnvironment`/`UnsetEnvironment` D-Bus methods. The two scoped N-API calls
+return `false` when the file operation succeeded but no user manager was
+available to update the current session. Clearing returns `null` when no
+KokoroBox-managed file exists. Desktop updates only its own process environment
+after a managed Native change.
+
 ## Network context
 
 `getNetworkContext()` returns a best-effort snapshot:
