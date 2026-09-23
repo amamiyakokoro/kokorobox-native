@@ -292,7 +292,7 @@ fn package_metadata_index() -> PackageMetadataIndex {
         let packages = manager.FindPackagesByUserSecurityId(&HSTRING::new())?;
         let mut index = PackageMetadataIndex::default();
         for package in packages {
-            let Some(metadata) = package.ok().and_then(|value| metadata_for_package(&value)) else {
+            let Some(metadata) = metadata_for_package(&package) else {
                 continue;
             };
             index.by_full_name.insert(
