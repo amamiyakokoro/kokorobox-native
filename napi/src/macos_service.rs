@@ -14,6 +14,29 @@ pub fn get_macos_managed_service_status(plist_name: String) -> Result<String> {
         .map_err(map_err)
 }
 
+pub struct MacosServiceProcessStatusTask;
+
+#[napi]
+impl Task for MacosServiceProcessStatusTask {
+    type Output = String;
+    type JsValue = String;
+
+    fn compute(&mut self) -> Result<Self::Output> {
+        kokorobox_native::get_macos_service_process_status()
+            .map(|status| status.as_str().to_string())
+            .map_err(map_err)
+    }
+
+    fn resolve(&mut self, _env: Env, output: Self::Output) -> Result<Self::JsValue> {
+        Ok(output)
+    }
+}
+
+#[napi]
+pub fn get_macos_service_process_status() -> AsyncTask<MacosServiceProcessStatusTask> {
+    AsyncTask::new(MacosServiceProcessStatusTask)
+}
+
 #[napi]
 pub fn register_macos_managed_service(plist_name: String) -> Result<String> {
     kokorobox_native::register_macos_managed_service(&plist_name)

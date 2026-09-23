@@ -25,6 +25,7 @@ pub struct JsNativeCapabilities {
     pub service_identity: bool,
     pub linux_terminal_proxy: bool,
     pub linux_service_status: bool,
+    pub macos_service_process_status: bool,
 }
 
 #[napi(object)]
@@ -79,6 +80,7 @@ pub fn get_native_capabilities() -> JsNativeCapabilities {
         service_identity: capabilities.service_identity,
         linux_terminal_proxy: capabilities.linux_terminal_proxy,
         linux_service_status: capabilities.linux_service_status,
+        macos_service_process_status: capabilities.macos_service_process_status,
     }
 }
 

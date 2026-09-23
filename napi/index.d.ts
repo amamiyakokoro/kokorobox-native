@@ -25,6 +25,7 @@ export interface NativeCapabilities {
   serviceLifecycle: boolean;
   managedFilePermissions: boolean;
   macosServiceManagement: boolean;
+  macosServiceProcessStatus: boolean;
   macosApplicationRouting: boolean;
   windowsPrivilegeRelaunch: boolean;
   windowsUwpLoopback: boolean;
@@ -195,7 +196,7 @@ export function getNativeCapabilities(): NativeCapabilities;
 /** Read-only status of KokoroBoxService from the Windows Service Control Manager. */
 export function getWindowsServiceStatus(): "running" | "stopped" | "paused" | "not-installed" | "unknown";
 /** Read-only status of the system-wide KokoroBoxService systemd unit. */
-export function getLinuxServiceStatus(): "running" | "stopped" | "not-installed" | "unknown";
+export function getLinuxServiceStatus(): Promise<"running" | "stopped" | "not-installed" | "unknown">;
 /** Write KokoroBox's Linux user-session proxy file and update systemd --user over D-Bus. */
 export function setTerminalProxyEnvironment(host: string, port: number, bypass: string[]): Promise<boolean>;
 /** Remove only KokoroBox's Linux user-session proxy file and clear its session variables. */
@@ -216,6 +217,8 @@ export function waitForNetworkContextChange(
 ): Promise<NetworkContext | null>;
 /** Query a LaunchDaemon plist embedded in the calling macOS application. */
 export function getMacosManagedServiceStatus(plistName: string): MacOSManagedServiceStatus;
+/** Query launchd's process state for the fixed KokoroBoxService system daemon. */
+export function getMacosServiceProcessStatus(): Promise<"running" | "stopped" | "not-installed" | "unknown">;
 export function registerMacosManagedService(plistName: string): MacOSManagedServiceStatus;
 export function unregisterMacosManagedService(plistName: string): MacOSManagedServiceStatus;
 export function reloadMacosManagedService(plistName: string): MacOSManagedServiceStatus;

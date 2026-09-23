@@ -6,6 +6,7 @@ mod icons;
 mod linux_service_status;
 mod macos_app_routing;
 mod macos_service;
+mod macos_service_process_status;
 mod platform;
 mod privileged_operations;
 mod privileges;
@@ -35,6 +36,9 @@ pub use macos_app_routing::{
 pub use macos_service::{
     MacOSManagedServiceStatus, get_macos_managed_service_status, open_macos_login_items_settings,
     register_macos_managed_service, reload_macos_managed_service, unregister_macos_managed_service,
+};
+pub use macos_service_process_status::{
+    MacosServiceProcessStatus, get_macos_service_process_status,
 };
 #[cfg(not(target_os = "windows"))]
 pub use non_windows::{
@@ -142,6 +146,7 @@ pub struct NativeCapabilities {
     pub service_identity: bool,
     pub linux_terminal_proxy: bool,
     pub linux_service_status: bool,
+    pub macos_service_process_status: bool,
 }
 
 pub fn native_capabilities() -> NativeCapabilities {
@@ -182,6 +187,7 @@ pub fn native_capabilities() -> NativeCapabilities {
         service_identity: true,
         linux_terminal_proxy: cfg!(target_os = "linux"),
         linux_service_status: cfg!(target_os = "linux"),
+        macos_service_process_status: cfg!(target_os = "macos"),
     }
 }
 
@@ -219,6 +225,10 @@ mod capability_tests {
         );
         assert_eq!(capabilities.linux_terminal_proxy, cfg!(target_os = "linux"));
         assert_eq!(capabilities.linux_service_status, cfg!(target_os = "linux"));
+        assert_eq!(
+            capabilities.macos_service_process_status,
+            cfg!(target_os = "macos")
+        );
     }
 
     #[test]

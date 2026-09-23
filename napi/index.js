@@ -110,6 +110,7 @@ export const setLaunchAtLogin = nativeBinding.setLaunchAtLogin;
 export const getNetworkContext = nativeBinding.getNetworkContext;
 export const waitForNetworkContextChange = nativeBinding.waitForNetworkContextChange;
 export const getMacosManagedServiceStatus = nativeBinding.getMacosManagedServiceStatus;
+export const getMacosServiceProcessStatus = nativeBinding.getMacosServiceProcessStatus;
 export const registerMacosManagedService = nativeBinding.registerMacosManagedService;
 export const unregisterMacosManagedService = nativeBinding.unregisterMacosManagedService;
 export const reloadMacosManagedService = nativeBinding.reloadMacosManagedService;

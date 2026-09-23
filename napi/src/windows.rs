@@ -63,11 +63,27 @@ pub fn get_windows_service_status() -> Result<String> {
         .map_err(map_err)
 }
 
+pub struct LinuxServiceStatusTask;
+
 #[napi]
-pub fn get_linux_service_status() -> Result<String> {
-    kokorobox_native::get_linux_service_status()
-        .map(|status| status.as_str().to_string())
-        .map_err(map_err)
+impl Task for LinuxServiceStatusTask {
+    type Output = String;
+    type JsValue = String;
+
+    fn compute(&mut self) -> Result<Self::Output> {
+        kokorobox_native::get_linux_service_status()
+            .map(|status| status.as_str().to_string())
+            .map_err(map_err)
+    }
+
+    fn resolve(&mut self, _env: Env, output: Self::Output) -> Result<Self::JsValue> {
+        Ok(output)
+    }
+}
+
+#[napi]
+pub fn get_linux_service_status() -> AsyncTask<LinuxServiceStatusTask> {
+    AsyncTask::new(LinuxServiceStatusTask)
 }
 
 #[napi]
