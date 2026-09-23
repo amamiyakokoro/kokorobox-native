@@ -1552,7 +1552,7 @@ dependencies = [
 
 [[package]]
 name = "kokorobox-native"
-version = "0.15.0"
+version = "0.16.0"
 dependencies = [
  "anyhow",
  "base64 0.23.1",
@@ -1576,7 +1576,7 @@ dependencies = [
 
 [[package]]
 name = "kokorobox-native-napi"
-version = "0.15.0"
+version = "0.16.0"
 dependencies = [
  "kokorobox-native",
  "napi",
@@ -1586,7 +1586,7 @@ dependencies = [
 
 [[package]]
 name = "kokorobox-portable-updater"
-version = "0.15.0"
+version = "0.16.0"
 dependencies = [
  "anyhow",
  "windows",
@@ -1594,7 +1594,7 @@ dependencies = [
 
 [[package]]
 name = "kokorobox-traffic-presenter"
-version = "0.15.0"
+version = "0.16.0"
 dependencies = [
  "serde",
  "serde_json",
