@@ -32,6 +32,7 @@ export interface NativeCapabilities {
   coreFilePrivileges: boolean;
   serviceIdentity: boolean;
   linuxTerminalProxy: boolean;
+  linuxServiceStatus: boolean;
 }
 
 export interface ExecutableSearchOptions {
@@ -193,6 +194,8 @@ export function getAppName(path: string): string;
 export function getNativeCapabilities(): NativeCapabilities;
 /** Read-only status of KokoroBoxService from the Windows Service Control Manager. */
 export function getWindowsServiceStatus(): "running" | "stopped" | "paused" | "not-installed" | "unknown";
+/** Read-only status of the system-wide KokoroBoxService systemd unit. */
+export function getLinuxServiceStatus(): "running" | "stopped" | "not-installed" | "unknown";
 /** Write KokoroBox's Linux user-session proxy file and update systemd --user over D-Bus. */
 export function setTerminalProxyEnvironment(host: string, port: number, bypass: string[]): Promise<boolean>;
 /** Remove only KokoroBox's Linux user-session proxy file and clear its session variables. */

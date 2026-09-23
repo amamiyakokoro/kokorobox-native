@@ -3,6 +3,7 @@
 mod application;
 mod executables;
 mod icons;
+mod linux_service_status;
 mod macos_app_routing;
 mod macos_service;
 mod platform;
@@ -23,6 +24,7 @@ pub use application::{
 };
 pub use executables::{ExecutableCandidate, ExecutableSearchOptions, find_executables};
 pub use icons::{file_to_data_url, get_app_name};
+pub use linux_service_status::{LinuxServiceStatus, get_linux_service_status};
 pub use macos_app_routing::{
     MacosApplicationRoutingAction, MacosApplicationRoutingConfiguration,
     MacosApplicationRoutingIdentifierKind, MacosApplicationRoutingProtocol,
@@ -139,6 +141,7 @@ pub struct NativeCapabilities {
     pub core_file_privileges: bool,
     pub service_identity: bool,
     pub linux_terminal_proxy: bool,
+    pub linux_service_status: bool,
 }
 
 pub fn native_capabilities() -> NativeCapabilities {
@@ -178,6 +181,7 @@ pub fn native_capabilities() -> NativeCapabilities {
         core_file_privileges: cfg!(any(target_os = "macos", target_os = "linux")),
         service_identity: true,
         linux_terminal_proxy: cfg!(target_os = "linux"),
+        linux_service_status: cfg!(target_os = "linux"),
     }
 }
 
@@ -214,6 +218,7 @@ mod capability_tests {
             cfg!(target_os = "windows")
         );
         assert_eq!(capabilities.linux_terminal_proxy, cfg!(target_os = "linux"));
+        assert_eq!(capabilities.linux_service_status, cfg!(target_os = "linux"));
     }
 
     #[test]

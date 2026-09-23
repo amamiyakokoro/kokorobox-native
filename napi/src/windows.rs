@@ -64,6 +64,13 @@ pub fn get_windows_service_status() -> Result<String> {
 }
 
 #[napi]
+pub fn get_linux_service_status() -> Result<String> {
+    kokorobox_native::get_linux_service_status()
+        .map(|status| status.as_str().to_string())
+        .map_err(map_err)
+}
+
+#[napi]
 pub fn ensure_kokoro_box_core_firewall(
     mihomo_path: String,
     mihomo_alpha_path: String,

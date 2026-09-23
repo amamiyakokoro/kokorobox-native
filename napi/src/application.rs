@@ -24,6 +24,7 @@ pub struct JsNativeCapabilities {
     pub core_file_privileges: bool,
     pub service_identity: bool,
     pub linux_terminal_proxy: bool,
+    pub linux_service_status: bool,
 }
 
 #[napi(object)]
@@ -77,6 +78,7 @@ pub fn get_native_capabilities() -> JsNativeCapabilities {
         core_file_privileges: capabilities.core_file_privileges,
         service_identity: capabilities.service_identity,
         linux_terminal_proxy: capabilities.linux_terminal_proxy,
+        linux_service_status: capabilities.linux_service_status,
     }
 }
 
