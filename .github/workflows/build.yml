@@ -85,7 +85,7 @@ jobs:
           node <<'NODE'
           const fs = require('node:fs')
           const version = process.env.RELEASE_VERSION
-          for (const file of ['Cargo.toml', 'napi/Cargo.toml', 'traffic-presenter/Cargo.toml']) {
+          for (const file of ['Cargo.toml', 'napi/Cargo.toml', 'traffic-presenter/Cargo.toml', 'portable-updater/Cargo.toml']) {
             const text = fs.readFileSync(file, 'utf8')
             fs.writeFileSync(file, text.replace(/^version = "([^"]+)"/m, `version = "${version}"`))
           }
@@ -178,6 +178,16 @@ jobs:
           cp "target/${{ matrix.target }}/release/kokorobox-traffic-presenter.exe" \
             "napi/kokorobox-traffic-presenter-${{ matrix.target }}.exe"
 
+      - name: Build portable updater (Windows static CRT)
+        if: runner.os == 'Windows'
+        shell: bash
+        env:
+          RUSTFLAGS: -C target-feature=+crt-static
+        run: |
+          cargo build --release --target ${{ matrix.target }} -p kokorobox-portable-updater
+          cp "target/${{ matrix.target }}/release/kokorobox-portable-updater.exe" \
+            "napi/kokorobox-portable-updater-${{ matrix.target }}.exe"
+
       - name: Upload native artifacts
         uses: actions/upload-artifact@v7
         with:
@@ -185,6 +195,7 @@ jobs:
           path: |
             napi/*.node
             napi/kokorobox-traffic-presenter-*
+            napi/kokorobox-portable-updater-*
 
   pre-release:
     needs: [build-node]
@@ -213,7 +224,7 @@ jobs:
           node <<'NODE'
           const fs = require('node:fs')
           const version = process.env.CLEAN_VERSION
-          for (const file of ['Cargo.toml', 'napi/Cargo.toml', 'traffic-presenter/Cargo.toml']) {
+          for (const file of ['Cargo.toml', 'napi/Cargo.toml', 'traffic-presenter/Cargo.toml', 'portable-updater/Cargo.toml']) {
             const text = fs.readFileSync(file, 'utf8')
             fs.writeFileSync(file, text.replace(/^version = "([^"]+)"/m, `version = "${version}"`))
           }
@@ -222,7 +233,7 @@ jobs:
           json.version = version
           fs.writeFileSync(packageFile, `${JSON.stringify(json, null, 2)}\n`)
 
-          const lockPackages = new Set(['kokorobox-native', 'kokorobox-native-napi', 'kokorobox-traffic-presenter'])
+          const lockPackages = new Set(['kokorobox-native', 'kokorobox-native-napi', 'kokorobox-traffic-presenter', 'kokorobox-portable-updater'])
           const lines = fs.readFileSync('Cargo.lock', 'utf8').split('\n')
           let inPackage = false
           let updatePackage = false
@@ -251,7 +262,7 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Cargo.toml Cargo.lock napi/Cargo.toml napi/package.json traffic-presenter/Cargo.toml
+          git add Cargo.toml Cargo.lock napi/Cargo.toml napi/package.json traffic-presenter/Cargo.toml portable-updater/Cargo.toml
           if git diff --cached --quiet; then
             exit 0
           fi
@@ -404,6 +415,7 @@ jobs:
           done
           for target in win32-x64-msvc win32-arm64-msvc; do
             test -f "npm/${target}/kokorobox-traffic-presenter.exe"
+            test -f "npm/${target}/kokorobox-portable-updater.exe"
           done
           test -f index.js
           test -f index.d.ts

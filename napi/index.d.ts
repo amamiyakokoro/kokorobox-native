@@ -203,6 +203,8 @@ export function setTerminalProxyEnvironment(host: string, port: number, bypass: 
 export function clearTerminalProxyEnvironment(): Promise<boolean | null>;
 /** Resolve the executable shipped beside the current platform binding. */
 export function getTrafficPresenterPath(): string;
+/** Resolve the Windows portable updater sidecar shipped with the native platform package. */
+export function getPortableUpdaterPath(): string;
 export function findExecutables(options: ExecutableSearchOptions): Promise<ExecutableCandidate[]>;
 export function getLaunchAtLogin(options: LaunchAtLoginOptions): Promise<LaunchAtLoginStatus>;
 export function setLaunchAtLogin(

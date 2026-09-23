@@ -59,6 +59,21 @@ export function getTrafficPresenterPath() {
   );
 }
 
+export function getPortableUpdaterPath() {
+  if (process.platform !== "win32") {
+    throw new Error("Portable updater is only available on Windows");
+  }
+  const filename = "kokorobox-portable-updater.exe";
+  const localPath = join(__dirname, filename);
+  if (existsSync(localPath)) return localPath;
+  if (loadedTuple) {
+    const packageEntry = require.resolve(`${packageName}-${loadedTuple}`);
+    const packagedPath = join(dirname(packageEntry), filename);
+    if (existsSync(packagedPath)) return packagedPath;
+  }
+  throw new Error(`Portable updater is missing for ${process.platform} ${process.arch}`);
+}
+
 function requireNative() {
   if (process.env.NAPI_RS_NATIVE_LIBRARY_PATH) {
     try {

@@ -1,0 +1,16 @@
+[package]
+name = "kokorobox-portable-updater"
+version = "0.15.0"
+edition = "2024"
+license = "GPL-3.0-only"
+description = "Windows portable update sidecar for KokoroBox"
+repository = "https://github.com/amamiyakokoro/kokorobox-native"
+
+[dependencies]
+anyhow = "1"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_System_Threading",
+] }

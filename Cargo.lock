@@ -1585,6 +1585,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "kokorobox-portable-updater"
+version = "0.15.0"
+dependencies = [
+ "anyhow",
+ "windows",
+]
+
+[[package]]
 name = "kokorobox-traffic-presenter"
 version = "0.15.0"
 dependencies = [

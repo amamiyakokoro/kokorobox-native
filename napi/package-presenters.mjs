@@ -30,3 +30,15 @@ for (const [rustTarget, packageTarget, extension] of targets) {
   if (!manifest.files.includes(filename)) manifest.files.push(filename);
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 }
+
+for (const [rustTarget, packageTarget] of targets.filter(([target]) => target.includes("windows"))) {
+  const filename = "kokorobox-portable-updater.exe";
+  const source = join(artifactsDirectory, `kokorobox-portable-updater-${rustTarget}.exe`);
+  const packageDirectory = join(packagesDirectory, packageTarget);
+  await copyFile(source, join(packageDirectory, filename));
+  const manifestPath = join(packageDirectory, "package.json");
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  manifest.files ??= [];
+  if (!manifest.files.includes(filename)) manifest.files.push(filename);
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+}
