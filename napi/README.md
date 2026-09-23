@@ -41,12 +41,14 @@ The full TypeScript declarations are shipped in
 | Icons | `fileToDataUrl`, `getAppName` |
 | Applications | `inspectApplication`, `scanWindowsApplications`, `findExecutables` |
 | Rules | `fileToStr` |
-| Platform | `getLaunchAtLogin`, `setLaunchAtLogin`, `getNetworkContext` |
+| Platform | `getLaunchAtLogin`, `setLaunchAtLogin`, `getNetworkContext`, `waitForNetworkContextChange` |
+| Service identity | `openServiceIdentity`, `deleteServiceIdentity`, `ServiceIdentity` |
+| Linux terminal proxy | `setTerminalProxyEnvironment`, `clearTerminalProxyEnvironment` |
 | macOS service | `getMacosManagedServiceStatus`, `registerMacosManagedService`, `unregisterMacosManagedService`, `reloadMacosManagedService`, `openMacosLoginItemsSettings` |
 | macOS application routing | `applyMacosApplicationRouting`, `getMacosApplicationRoutingStatus`, `stopMacosApplicationRouting`, `openMacosApplicationRoutingSettings` |
 | Core permissions | `getCorePrivilegeStatus`, `setCorePrivileges` |
 | Privileged operations | `runServiceLifecycleElevated`, `cleanupLegacyMacosService`, `stopMacosManagedService`, `repairManagedFilePermissions` |
-| Windows | `getCurrentUserSid`, `isRunningAsAdmin`, `relaunchCurrentApplicationWithPrivilege`, `ensureKokoroBoxCoreFirewall` |
+| Windows | `getCurrentUserSid`, `isRunningAsAdmin`, `relaunchCurrentApplicationWithPrivilege`, `ensureKokoroBoxCoreFirewall`, `listUwpLoopbackApps`, `setUwpLoopbackExemption` |
 
 `inspectApplication` validates the input for the current platform and resolves
 it to a routing identifier: an executable path on Windows and Linux, or a code
@@ -77,6 +79,18 @@ such as the default interface and SSID may be absent. macOS obtains this state
 directly from SystemConfiguration without parsing command output.
 Windows obtains the preferred interface and DNS servers from IP Helper and the
 SSID from Native Wi-Fi, without spawning PowerShell.
+
+`waitForNetworkContextChange(previous, timeoutMs)` resolves with a changed
+snapshot or `null` when the timeout expires. `openServiceIdentity()` opens an
+opaque Ed25519 signer backed by the platform credential store; its private key
+is not returned to JavaScript. Linux can use an explicitly reported protected
+file fallback when Secret Service is unavailable.
+
+On Linux, the terminal proxy functions manage only KokoroBox's user-session
+configuration. The set call returns whether the systemd user manager was
+updated; clearing returns `null` when no managed file exists. See the
+[platform-services contract](../docs/platform-services.md) for the exact path
+and return semantics.
 
 The macOS managed-service functions accept the basename of an embedded
 LaunchDaemon plist and use `SMAppService` directly. They return an explicit
@@ -116,6 +130,7 @@ support than the package itself:
 | `managedFilePermissions` | macOS, Linux |
 | `windowsPrivilegeRelaunch` | Windows |
 | `windowsUwpLoopback` | Windows |
+| `linuxTerminalProxy` | Linux |
 
 Use these flags instead of inferring availability from `process.platform` or
 from a related but broader capability.
@@ -131,10 +146,16 @@ elevated relaunch presents the standard UAC prompt; the unelevated path uses
 the interactive desktop shell token. It does not configure persistent
 elevation.
 
+`listUwpLoopbackApps()` reports Windows app containers with an opaque ID,
+display metadata, category (`user`, `microsoft`, or `system`), package type,
+and exemption status. Pass that ID to `setUwpLoopbackExemption()` to change the
+app's loopback exemption.
+
 ## Contributing
 
-The source is a two-crate Rust workspace. The root crate implements native
-behavior; `napi/` maps it into this package’s JavaScript API. See the root
+The source is a three-crate Rust workspace. The root crate implements native
+behavior, `napi/` maps it into this package’s JavaScript API, and
+`traffic-presenter/` builds the sidecar. See the root
 [README](../README.md#repository-structure) for the complete layout and build
 commands.
 

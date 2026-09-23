@@ -10,16 +10,18 @@ owns its lifetime and sends versioned numeric traffic snapshots over standard
 input; the presenter never connects to Mihomo or handles controller secrets.
 
 It provides file and application icon helpers, application inspection,
-shell-free executable discovery, rule-set conversion, launch-at-login, macOS
-managed-service and observable network-context helpers, secure service identity,
-constrained Unix core permissions, macOS application-routing control-plane management,
-and Windows account, elevation, Firewall, and application-scanning integrations.
+shell-free executable discovery, rule-set conversion, launch-at-login, network
+observation, secure service identity, and platform-specific integrations:
+macOS service and application routing, Linux terminal proxy sessions, constrained
+Unix core permissions, and Windows account, elevation, Firewall, UWP loopback,
+and application scanning.
 
 ## Repository structure
 
 ```
 .
 ├── Cargo.toml              # Workspace and core Rust crate manifest
+├── build.rs                # Compiles the macOS routing bridge
 ├── docs/                   # Public platform and presenter contracts
 │   ├── platform-services.md # Platform APIs, validation, and security rules
 │   └── traffic-presenter.md # Presenter JSON-lines protocol and trust boundary
@@ -28,12 +30,17 @@ and Windows account, elevation, Firewall, and application-scanning integrations.
 │   ├── application.rs      # Application inspection and Windows scanning
 │   ├── executables.rs      # Shell-free cross-platform executable discovery
 │   ├── icons.rs            # Icon data URLs and display-name lookup
+│   ├── macos_app_routing.rs # Typed routing control plane
 │   ├── macos_service.rs    # Embedded LaunchDaemon lifecycle management
 │   ├── platform.rs         # Login-item and network-context implementations
+│   ├── privileged_operations.rs # Scoped elevated operations
 │   ├── privileges.rs       # Constrained Mihomo core-file privileges
 │   ├── rules.rs            # Rule-file conversion facade
-│   ├── windows/            # Windows-only token, elevation, and Firewall code
+│   ├── service_identity.rs # Native Ed25519 signer and credential storage
+│   ├── terminal_proxy.rs   # Linux user-session proxy environment
+│   ├── windows/            # Windows account, Firewall, and UWP loopback code
 │   └── non_windows.rs      # Explicit unsupported-platform Windows stubs
+├── native/                 # Objective-C++ macOS routing bridge
 ├── traffic-presenter/      # Cross-platform per-user traffic status process
 │   ├── src/lib.rs          # Versioned protocol and presentation state
 │   ├── src/runtime.rs      # Standard-input command loop
@@ -67,9 +74,9 @@ lookup, elevation, Firewall management, and directory scanning—fail with an
 `UNSUPPORTED_PLATFORM:` error outside Windows; they do not silently succeed.
 
 Capability flags follow operation boundaries rather than broad operating-system
-checks. In particular, callers can independently detect active-network DNS
-mutation, elevated service lifecycle operations, managed-file permission
-repair, Windows privilege relaunch, and Windows UWP loopback management. A
+checks. In particular, callers can independently detect network monitoring,
+service lifecycle operations, managed-file permission repair, Windows privilege
+relaunch and UWP loopback management, and Linux terminal proxy support. A
 platform name alone is not proof that an optional integration was compiled in.
 
 `inspectApplication(path)` and `scanWindowsApplications(directory)` run off the
@@ -98,6 +105,16 @@ The typed macOS application-routing APIs own the control plane inside the same
 native module. Callers apply a bounded policy or request status, stop, and
 Settings operations without constructing the internal versioned JSON protocol.
 The packet provider remains a separate System Extension.
+
+`listUwpLoopbackApps()` returns Windows app containers with package metadata,
+including user, Microsoft, or system category and package type. Callers pass
+the returned opaque ID to `setUwpLoopbackExemption()`; both operations are gated
+by `windowsUwpLoopback`.
+
+On Linux, `setTerminalProxyEnvironment()` and
+`clearTerminalProxyEnvironment()` manage KokoroBox's user-session proxy file
+and update the systemd user manager when available. They are gated by
+`linuxTerminalProxy`.
 
 Windows privilege relaunches are explicit and non-persistent.
 `relaunchCurrentApplicationWithPrivilege` starts a fresh copy of the current
@@ -147,7 +164,7 @@ if (capabilities.launchAtLogin) {
 
 ## Development
 
-Prerequisites: a current Rust toolchain, Node.js 16 or later, and pnpm 11.
+Prerequisites: a current Rust toolchain, Node.js 26 (as used by CI), and pnpm 11.
 
 Build the N-API module from the `napi` package:
 
