@@ -10,6 +10,7 @@ mod privileged_operations;
 mod privileges;
 mod rules;
 mod service_identity;
+mod service_status;
 mod terminal_proxy;
 
 #[cfg(not(target_os = "windows"))]
@@ -55,6 +56,7 @@ pub use service_identity::{
     LegacyServiceIdentity, ServiceIdentity, ServiceIdentityInfo, ServiceIdentityOptions,
     delete_service_identity, open_service_identity,
 };
+pub use service_status::{WindowsServiceStatus, get_windows_service_status};
 pub use terminal_proxy::{clear_terminal_proxy_environment, set_terminal_proxy_environment};
 #[cfg(target_os = "windows")]
 pub use windows::{
@@ -133,6 +135,7 @@ pub struct NativeCapabilities {
     pub macos_application_routing: bool,
     pub windows_privilege_relaunch: bool,
     pub windows_uwp_loopback: bool,
+    pub windows_service_status: bool,
     pub core_file_privileges: bool,
     pub service_identity: bool,
     pub linux_terminal_proxy: bool,
@@ -171,6 +174,7 @@ pub fn native_capabilities() -> NativeCapabilities {
         macos_application_routing: cfg!(target_os = "macos"),
         windows_privilege_relaunch: cfg!(target_os = "windows"),
         windows_uwp_loopback: cfg!(target_os = "windows"),
+        windows_service_status: cfg!(target_os = "windows"),
         core_file_privileges: cfg!(any(target_os = "macos", target_os = "linux")),
         service_identity: true,
         linux_terminal_proxy: cfg!(target_os = "linux"),
@@ -203,6 +207,10 @@ mod capability_tests {
         );
         assert_eq!(
             capabilities.windows_uwp_loopback,
+            cfg!(target_os = "windows")
+        );
+        assert_eq!(
+            capabilities.windows_service_status,
             cfg!(target_os = "windows")
         );
         assert_eq!(capabilities.linux_terminal_proxy, cfg!(target_os = "linux"));

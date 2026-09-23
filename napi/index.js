@@ -100,6 +100,7 @@ export const fileToDataUrl = nativeBinding.fileToDataUrl;
 export const fileToStr = nativeBinding.fileToStr;
 export const getAppName = nativeBinding.getAppName;
 export const getNativeCapabilities = nativeBinding.getNativeCapabilities;
+export const getWindowsServiceStatus = nativeBinding.getWindowsServiceStatus;
 export const setTerminalProxyEnvironment = nativeBinding.setTerminalProxyEnvironment;
 export const clearTerminalProxyEnvironment = nativeBinding.clearTerminalProxyEnvironment;
 export const findExecutables = nativeBinding.findExecutables;

@@ -28,6 +28,7 @@ export interface NativeCapabilities {
   macosApplicationRouting: boolean;
   windowsPrivilegeRelaunch: boolean;
   windowsUwpLoopback: boolean;
+  windowsServiceStatus: boolean;
   coreFilePrivileges: boolean;
   serviceIdentity: boolean;
   linuxTerminalProxy: boolean;
@@ -190,6 +191,8 @@ export function fileToStr(
 ): RuleStringResult;
 export function getAppName(path: string): string;
 export function getNativeCapabilities(): NativeCapabilities;
+/** Read-only status of KokoroBoxService from the Windows Service Control Manager. */
+export function getWindowsServiceStatus(): "running" | "stopped" | "paused" | "not-installed" | "unknown";
 /** Write KokoroBox's Linux user-session proxy file and update systemd --user over D-Bus. */
 export function setTerminalProxyEnvironment(host: string, port: number, bypass: string[]): Promise<boolean>;
 /** Remove only KokoroBox's Linux user-session proxy file and clear its session variables. */
