@@ -1,35 +1,36 @@
+<div align="center">
+
 # KokoroBox Native
 
-Native Rust components for KokoroBox Desktop. The `kokorobox-native` npm
-package loads prebuilt N-API binaries for Windows, macOS, and GNU/Linux on x64
-and arm64.
+Rust components and Node.js bindings for [KokoroBox Desktop](https://github.com/amamiyakokoro/KokoroBox-Desktop).
 
-The library provides application and icon inspection, executable discovery,
-rule conversion, network observation, launch-at-login, service identity, and
-platform-specific service, routing, proxy, and privilege operations. Optional
-features are reported by `getNativeCapabilities()`.
+[Documentation](docs/api.md) · [License](LICENSE)
 
-## Repository structure
+</div>
 
-| Path | Purpose |
-| --- | --- |
-| `src/` | Core Rust library and platform implementations |
-| `napi/` | Node.js bindings, TypeScript declarations, and npm package |
-| `traffic-presenter/` | Per-user traffic display process controlled by Desktop over standard input |
-| `portable-updater/` | Windows portable update sidecar |
-| `native/` | macOS routing bridge |
-| `docs/` | Platform and presenter contracts |
+## Features
 
-Keep native behavior in `src/`; expose it through `napi/src/` and
-`napi/index.d.ts`. The sidecars are separate executables, not N-API exports.
+- Application and icon inspection, executable discovery, and rule conversion
+- Network observation, launch at login, and secure service identity
+- Platform-specific service, application routing, proxy, and privilege operations
+- Traffic presenter and Windows portable updater sidecars
 
-## Documentation
+Use `getNativeCapabilities()` to check which optional features are available.
 
-- [Package installation and usage](napi/README.md)
-- [JavaScript API guide](docs/api.md)
-- [TypeScript API](napi/index.d.ts)
-- [Platform behavior and security contract](docs/platform-services.md)
-- [Traffic presenter protocol](docs/traffic-presenter.md)
+## Supported platforms
+
+Prebuilt npm packages support Windows (MSVC), macOS, and GNU/Linux on x64 and
+arm64. The portable updater is available on Windows only.
+
+## Get started
+
+Install the ESM package:
+
+```sh
+pnpm add kokorobox-native
+```
+
+See the [package README](napi/README.md) for a usage example.
 
 ## Development
 
@@ -40,23 +41,30 @@ cd napi
 pnpm install
 pnpm build
 cd ..
-```
-
-From the repository root, build the sidecars and check the Rust workspace:
-
-```sh
 cargo build --release -p kokorobox-traffic-presenter
 cargo build --release -p kokorobox-portable-updater # Windows only
+```
+
+Run workspace checks from the repository root:
+
+```sh
 cargo fmt --all --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 ```
 
-Release packaging copies platform-matched sidecars into the npm packages with
+The root crate implements native behavior, `napi/` exposes it to JavaScript,
+and `traffic-presenter/` and `portable-updater/` build the sidecars. Release
+packaging copies sidecars into platform packages with
 `cd napi && pnpm package-presenters`.
 
-## Origin and license
+## Documentation
+
+- [JavaScript API guide](docs/api.md) and [TypeScript declarations](napi/index.d.ts)
+- [Platform behavior and security contract](docs/platform-services.md)
+- [Traffic presenter protocol](docs/traffic-presenter.md)
+
+## License
 
 Derived from [UruhaLushia/sparkle-native](https://github.com/UruhaLushia/sparkle-native)
-with upstream Git history preserved. Licensed under GPL-3.0-only; see
-[LICENSE](LICENSE).
+with upstream Git history preserved. Licensed under [GPL-3.0-only](LICENSE).
