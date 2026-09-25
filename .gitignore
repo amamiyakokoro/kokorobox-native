@@ -3,6 +3,8 @@
 /napi/npm/
 /napi/artifacts/
 /napi/*.node
+/napi/kokorobox-traffic-presenter-*
+/napi/kokorobox-portable-updater-*
 /napi/napi.generated.d.ts
 *.log
 .DS_Store
