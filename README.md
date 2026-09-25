@@ -25,7 +25,8 @@ Keep native behavior in `src/`; expose it through `napi/src/` and
 
 ## Documentation
 
-- [Package usage and API overview](napi/README.md)
+- [Package installation and usage](napi/README.md)
+- [JavaScript API guide](docs/api.md)
 - [TypeScript API](napi/index.d.ts)
 - [Platform behavior and security contract](docs/platform-services.md)
 - [Traffic presenter protocol](docs/traffic-presenter.md)

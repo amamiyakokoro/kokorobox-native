@@ -89,13 +89,12 @@ reporting a generic failure. This capability requires macOS 13 or later.
 
 ## Windows privilege relaunch
 
-`launchElevated(command, args)` starts a new process with the standard UAC
-`runas` verb. `launchUnelevated(command, args)` starts a new process with the
-interactive Explorer shell as its logical parent, avoiding privileged token
-duplication. Both operations return after process creation
-and deliberately avoid scheduled tasks, services, or other persistent elevation.
-Consumers remain responsible for coordinating single-instance shutdown before
-the replacement process starts.
+`relaunchCurrentApplicationWithPrivilege(args, elevated)` starts a new copy of
+the current application. When `elevated` is true, it uses the standard UAC
+`runas` verb; otherwise, it uses the interactive Explorer shell as its logical
+parent, avoiding privileged token duplication. It does not accept an arbitrary
+executable path and returns after process creation. Consumers remain responsible
+for coordinating single-instance shutdown before the replacement process starts.
 
 ## Mihomo core-file privileges
 
