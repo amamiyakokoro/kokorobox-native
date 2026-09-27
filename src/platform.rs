@@ -865,23 +865,55 @@ fn windows_ip_configuration() -> (Option<String>, Vec<String>) {
 
 #[cfg(target_os = "windows")]
 fn windows_ssid() -> Option<String> {
-    use std::{ffi::c_void, ptr::null_mut, slice};
+    use std::{
+        ffi::c_void,
+        ptr::{null, null_mut},
+        slice,
+    };
+    use libloading::os::windows::{Library, LOAD_LIBRARY_SEARCH_SYSTEM32};
     use windows::Win32::{
         Foundation::{ERROR_SUCCESS, HANDLE},
         NetworkManagement::WiFi::{
             WLAN_API_VERSION_2_0, WLAN_CONNECTION_ATTRIBUTES, WLAN_INTERFACE_INFO_LIST,
-            WlanCloseHandle, WlanEnumInterfaces, WlanFreeMemory, WlanOpenHandle,
-            WlanQueryInterface, wlan_interface_state_connected,
+            WLAN_INTF_OPCODE, WLAN_OPCODE_VALUE_TYPE, wlan_interface_state_connected,
             wlan_intf_opcode_current_connection,
         },
     };
+    use windows::core::GUID;
+
+    type OpenHandle = unsafe extern "system" fn(u32, *const c_void, *mut u32, *mut HANDLE) -> u32;
+    type EnumInterfaces = unsafe extern "system" fn(
+        HANDLE,
+        *const c_void,
+        *mut *mut WLAN_INTERFACE_INFO_LIST,
+    ) -> u32;
+    type QueryInterface = unsafe extern "system" fn(
+        HANDLE,
+        *const GUID,
+        WLAN_INTF_OPCODE,
+        *const c_void,
+        *mut u32,
+        *mut *mut c_void,
+        *mut WLAN_OPCODE_VALUE_TYPE,
+    ) -> u32;
+    type FreeMemory = unsafe extern "system" fn(*const c_void);
+    type CloseHandle = unsafe extern "system" fn(HANDLE, *const c_void) -> u32;
 
     unsafe {
+        // WLAN is optional on Windows Server. Resolve it only when reading the SSID,
+        // and search System32 so an application-directory DLL cannot be substituted.
+        let wlan = Library::load_with_flags("wlanapi.dll", LOAD_LIBRARY_SEARCH_SYSTEM32).ok()?;
+        let open_handle = wlan.get::<OpenHandle>(b"WlanOpenHandle\0").ok()?;
+        let enum_interfaces = wlan.get::<EnumInterfaces>(b"WlanEnumInterfaces\0").ok()?;
+        let query_interface = wlan.get::<QueryInterface>(b"WlanQueryInterface\0").ok()?;
+        let free_memory = wlan.get::<FreeMemory>(b"WlanFreeMemory\0").ok()?;
+        let close_handle = wlan.get::<CloseHandle>(b"WlanCloseHandle\0").ok()?;
+
         let mut negotiated_version = 0;
         let mut handle = HANDLE::default();
-        if WlanOpenHandle(
+        if open_handle(
             WLAN_API_VERSION_2_0,
-            None,
+            null(),
             &mut negotiated_version,
             &mut handle,
         ) != ERROR_SUCCESS.0
@@ -891,7 +923,7 @@ fn windows_ssid() -> Option<String> {
 
         let mut list: *mut WLAN_INTERFACE_INFO_LIST = null_mut();
         let mut result = None;
-        if WlanEnumInterfaces(handle, None, &mut list) == ERROR_SUCCESS.0 && !list.is_null() {
+        if enum_interfaces(handle, null(), &mut list) == ERROR_SUCCESS.0 && !list.is_null() {
             let interface_list = &*list;
             let interfaces = slice::from_raw_parts(
                 interface_list.InterfaceInfo.as_ptr(),
@@ -903,14 +935,14 @@ fn windows_ssid() -> Option<String> {
                 }
                 let mut size = 0;
                 let mut data: *mut c_void = null_mut();
-                if WlanQueryInterface(
+                if query_interface(
                     handle,
                     &interface.InterfaceGuid,
                     wlan_intf_opcode_current_connection,
-                    None,
+                    null(),
                     &mut size,
                     &mut data,
-                    None,
+                    null_mut(),
                 ) == ERROR_SUCCESS.0
                     && !data.is_null()
                 {
@@ -920,16 +952,16 @@ fn windows_ssid() -> Option<String> {
                     let value = String::from_utf8_lossy(&ssid.ucSSID[..length])
                         .trim()
                         .to_string();
-                    WlanFreeMemory(data);
+                    free_memory(data);
                     if !value.is_empty() {
                         result = Some(value);
                         break;
                     }
                 }
             }
-            WlanFreeMemory(list.cast());
+            free_memory(list.cast());
         }
-        let _ = WlanCloseHandle(handle, None);
+        let _ = close_handle(handle, null());
         result
     }
 }

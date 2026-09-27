@@ -1562,6 +1562,7 @@ dependencies = [
  "getrandom 0.4.3",
  "keyring",
  "libc",
+ "libloading",
  "objc2",
  "objc2-foundation",
  "objc2-service-management",
