@@ -29,6 +29,20 @@ const app = await inspectApplication("/Applications/KokoroBox.app");
 
 Check `getNativeCapabilities()` before using optional platform features.
 
+## Diagnostics
+
+`drainNativeLogs()` returns English JSON-compatible records with `ts`, `level`,
+`target`, and `msg`. Use one consumer to periodically drain the queue into the
+application's log. It retains at most 500 records; overflow produces a warning.
+`setNativeLogLevel("debug" | "info" | "warn" | "error")` changes recording
+severity (default: `info`). Healthy polling is only recorded at `debug`. Operation failures retain
+their original exceptions and causes; lifecycle successes record the operation
+name without arguments, keys, or signatures.
+
+The traffic presenter emits JSON Lines to stderr. The Windows portable updater
+also saves its last run in `%TEMP%/kokorobox-portable-updater.log` because Desktop
+exits before extraction. These sidecars include Unix milliseconds in `timestamp`.
+
 ## Documentation
 
 - [JavaScript API guide](../docs/api.md)

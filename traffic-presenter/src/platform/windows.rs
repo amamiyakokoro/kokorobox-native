@@ -128,7 +128,11 @@ fn refresh_presenter() {
         }
         Err(error) => {
             if !PRESENTER_FAILURE_REPORTED.swap(true, Ordering::AcqRel) {
-                eprintln!("kokorobox-traffic-presenter: update taskbar window: {error}");
+                crate::stderr_log::write(
+                    "error",
+                    "traffic-presenter",
+                    format_args!("update taskbar window: {error}"),
+                );
             }
         }
     }
@@ -166,8 +170,10 @@ unsafe fn ensure_presenter_window() -> windows::core::Result<()> {
         ATTACHMENT_FAILURE_REPORTED.store(false, Ordering::Release);
     } else {
         if !ATTACHMENT_FAILURE_REPORTED.swap(true, Ordering::AcqRel) {
-            eprintln!(
-                "kokorobox-traffic-presenter: could not attach to the taskbar; using top-level fallback"
+            crate::stderr_log::write(
+                "warn",
+                "traffic-presenter",
+                format_args!("Could not attach to the taskbar; using top-level fallback"),
             );
         }
     }
@@ -312,7 +318,11 @@ unsafe fn paint_presenter(hwnd: HWND) {
             }
             Err(error) => {
                 if !RENDER_FAILURE_REPORTED.swap(true, Ordering::AcqRel) {
-                    eprintln!("kokorobox-traffic-presenter: render taskbar text: {error}");
+                    crate::stderr_log::write(
+                        "error",
+                        "traffic-presenter",
+                        format_args!("render taskbar text: {error}"),
+                    );
                 }
             }
         }
@@ -665,12 +675,20 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
                 Ok(line) => match parse_command(&line) {
                     Ok(command) => apply_command(command),
                     Err(error) => {
-                        eprintln!("kokorobox-traffic-presenter: read command: {error}");
+                        crate::stderr_log::write(
+                            "error",
+                            "traffic-presenter",
+                            format_args!("read command: {error}"),
+                        );
                         break;
                     }
                 },
                 Err(error) => {
-                    eprintln!("kokorobox-traffic-presenter: read command: {error}");
+                    crate::stderr_log::write(
+                        "error",
+                        "traffic-presenter",
+                        format_args!("read command: {error}"),
+                    );
                     break;
                 }
             }

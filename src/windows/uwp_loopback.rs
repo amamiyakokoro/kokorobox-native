@@ -251,7 +251,10 @@ fn metadata_for_package(package: &Package) -> Option<PackageMetadata> {
     let framework = package.IsFramework().unwrap_or(false);
     let resource_package = package.IsResourcePackage().unwrap_or(false);
     let optional = package.IsOptional().unwrap_or(false);
-    let publisher = id.Publisher().map(|value| value.to_string()).unwrap_or_default();
+    let publisher = id
+        .Publisher()
+        .map(|value| value.to_string())
+        .unwrap_or_default();
     let publisher_display_name = package
         .PublisherDisplayName()
         .map(|value| value.to_string())
@@ -401,9 +404,7 @@ pub fn set_uwp_loopback_exemption(id: &str, enabled: bool) -> Result<()> {
     let target = containers
         .entries()
         .iter()
-        .find(|container| {
-            sid_key(PSID(container.appContainerSid.cast())).as_deref() == Some(id)
-        })
+        .find(|container| sid_key(PSID(container.appContainerSid.cast())).as_deref() == Some(id))
         .context("UWP app container is no longer installed")?;
     let config = Config::get()?;
     let mut entries = config.entries().to_vec();
@@ -480,7 +481,9 @@ mod tests {
 
     #[test]
     fn recognizes_indirect_manifest_resources() {
-        assert!(is_indirect_resource("@{Microsoft.App_1.0?ms-resource://AppName}"));
+        assert!(is_indirect_resource(
+            "@{Microsoft.App_1.0?ms-resource://AppName}"
+        ));
         assert!(is_indirect_resource("ms-resource:AppName"));
         assert!(!is_indirect_resource("Microsoft Store"));
     }

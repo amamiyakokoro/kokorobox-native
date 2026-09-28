@@ -51,14 +51,22 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
                 match result {
                     Ok(new_tray) => {
                         if let Err(error) = new_tray.set_visible(false) {
-                            eprintln!("kokorobox-traffic-presenter: hide status item: {error}");
+                            crate::stderr_log::write(
+                                "error",
+                                "traffic-presenter",
+                                format_args!("hide status item: {error}"),
+                            );
                             *control_flow = ControlFlow::ExitWithCode(1);
                         } else {
                             tray = Some(new_tray);
                         }
                     }
                     Err(error) => {
-                        eprintln!("kokorobox-traffic-presenter: create status item: {error}");
+                        crate::stderr_log::write(
+                            "error",
+                            "traffic-presenter",
+                            format_args!("create status item: {error}"),
+                        );
                         *control_flow = ControlFlow::ExitWithCode(1);
                     }
                 }
@@ -75,7 +83,11 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
                         .set_tooltip(Some(&label))
                         .and_then(|()| tray.set_visible(state.visible))
                     {
-                        eprintln!("kokorobox-traffic-presenter: update status item: {error}");
+                        crate::stderr_log::write(
+                            "error",
+                            "traffic-presenter",
+                            format_args!("update status item: {error}"),
+                        );
                         *control_flow = ControlFlow::ExitWithCode(1);
                     }
                 }
@@ -84,7 +96,11 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
                 *control_flow = ControlFlow::Exit;
             }
             Event::UserEvent(UserEvent::InputError(error)) => {
-                eprintln!("kokorobox-traffic-presenter: read command: {error}");
+                crate::stderr_log::write(
+                    "error",
+                    "traffic-presenter",
+                    format_args!("read command: {error}"),
+                );
                 *control_flow = ControlFlow::ExitWithCode(1);
             }
             _ => {}

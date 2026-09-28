@@ -1590,6 +1590,7 @@ name = "kokorobox-portable-updater"
 version = "0.16.1"
 dependencies = [
  "anyhow",
+ "serde_json",
  "windows",
 ]
 

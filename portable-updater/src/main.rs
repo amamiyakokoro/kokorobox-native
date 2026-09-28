@@ -2,6 +2,8 @@
 #![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
 
 use anyhow::{Context, Result, anyhow, bail};
+#[path = "../../src/stderr_log.rs"]
+mod stderr_log;
 use std::{
     env, fs,
     path::{Path, PathBuf},
@@ -155,10 +157,31 @@ fn main() {
         );
         return;
     }
+    // Desktop exits before extraction. Keep the last update's small diagnostic
+    // file available even when its stderr consumer has already gone away.
+    let mut log_file =
+        fs::File::create(env::temp_dir().join("kokorobox-portable-updater.log")).ok();
+    update_log(
+        &mut log_file,
+        "info",
+        format_args!("Portable update started"),
+    );
     let result = parse_options(env::args().skip(1)).and_then(run);
     if let Err(error) = result {
-        eprintln!("kokorobox-portable-updater: {error:#}");
+        update_log(&mut log_file, "error", format_args!("{error:#}"));
         std::process::exit(1);
+    }
+    update_log(
+        &mut log_file,
+        "info",
+        format_args!("Portable update completed"),
+    );
+}
+
+fn update_log(file: &mut Option<fs::File>, level: &str, message: std::fmt::Arguments<'_>) {
+    stderr_log::write(level, "portable-updater", message);
+    if let Some(file) = file {
+        stderr_log::write_to(file, level, "portable-updater", message);
     }
 }
 

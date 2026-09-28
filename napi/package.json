@@ -17,6 +17,7 @@
   "license": "GPL-3.0-only",
   "files": [
     "index.js",
+    "diagnostics.js",
     "index.d.ts",
     "README.md"
   ],
@@ -32,6 +33,7 @@
     ]
   },
   "scripts": {
+    "test:logs": "node --test tests/diagnostics.test.mjs",
     "build": "napi build --platform --release --strip --no-js --dts napi.generated.d.ts",
     "build:debug": "napi build --platform --no-js --dts napi.generated.d.ts",
     "create-npm-dirs": "napi create-npm-dirs",

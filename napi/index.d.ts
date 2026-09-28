@@ -1,3 +1,14 @@
+export interface NativeLogEntry {
+  ts: string;
+  level: "debug" | "info" | "warn" | "error";
+  target: string;
+  msg: string;
+}
+/** Drains at most 500 entries and an optional overflow warning; use one consumer. */
+export declare function drainNativeLogs(): NativeLogEntry[];
+/** Controls recording, independently from display language. Defaults to info. */
+export declare function setNativeLogLevel(level: NativeLogEntry["level"]): void;
+
 export interface UwpLoopbackApp {
   /** Opaque identifier used only when changing this app's loopback exemption. */
   id: string;

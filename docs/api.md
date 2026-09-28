@@ -65,6 +65,21 @@ the systemd user manager was updated, and clearing returns `null` when no
 managed file exists. See [platform services](platform-services.md) for the
 specific paths, validation rules, and privilege boundaries.
 
+## Diagnostics
+
+`drainNativeLogs()` returns and clears the Node.js bridge's bounded diagnostic
+queue. Each entry contains `ts` (ISO 8601), `level` (`debug`, `info`, `warn`, or
+`error`), `target` (operation name), and `msg`. Use one application-owned consumer.
+At most 500 entries are retained, plus an overflow warning when draining.
+`setNativeLogLevel(level)` controls recording; the default is `info`.
+
+Errors are recorded without changing thrown exceptions or promise rejection.
+Healthy reads only generate `debug` records. Service lifecycle and other configuration
+operations record successful completion without retaining argument values.
+Sidecar errors use JSON Lines on stderr; Desktop can combine them with its own
+logs. Portable updates additionally preserve their last run in the user's
+temporary directory as `kokorobox-portable-updater.log`.
+
 ## Windows operations
 
 | API | Purpose |

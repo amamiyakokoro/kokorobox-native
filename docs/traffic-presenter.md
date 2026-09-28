@@ -34,3 +34,9 @@ The current platform presentation is:
 
 The process is single-instance on Windows and exits when Desktop closes its
 input stream on every platform.
+
+## Diagnostics
+
+stderr emits one JSON object per line with Unix milliseconds in `timestamp`,
+`level`, `target: "traffic-presenter"`, and `msg`. Errors use `error`; recoverable
+taskbar attachment fallback uses `warn`. stdout is reserved for protocol output.

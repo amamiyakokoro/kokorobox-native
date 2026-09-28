@@ -5,6 +5,13 @@
 import { existsSync } from 'node:fs'
 import { dirname, join } from "node:path";
 import { createRequire } from "node:module";
+import {
+  nativeErrorMessage,
+  wrapNativeOperation,
+  drainNativeLogs,
+  setNativeLogLevel,
+} from "./diagnostics.js";
+export { drainNativeLogs, setNativeLogLevel };
 
 const require = createRequire(import.meta.url);
 const __dirname = new URL(".", import.meta.url).pathname.replace(
@@ -71,7 +78,9 @@ export function getPortableUpdaterPath() {
     const packagedPath = join(dirname(packageEntry), filename);
     if (existsSync(packagedPath)) return packagedPath;
   }
-  throw new Error(`Portable updater is missing for ${process.platform} ${process.arch}`);
+  throw new Error(
+    `Portable updater is missing for ${process.platform} ${process.arch}`,
+  );
 }
 
 function requireNative() {
@@ -105,49 +114,88 @@ function requireNative() {
 const nativeBinding = requireNative();
 
 if (!nativeBinding) {
-  const error = new Error("Failed to load kokorobox-native binding");
+  const detail = nativeErrorMessage({
+    cause: loadErrors,
+    toString: () => "Failed to load kokorobox-native binding",
+  });
+  const error = new Error(detail);
   error.cause = loadErrors;
   throw error;
 }
 
-export default nativeBinding;
-export const fileToDataUrl = nativeBinding.fileToDataUrl;
-export const fileToStr = nativeBinding.fileToStr;
-export const getAppName = nativeBinding.getAppName;
-export const getNativeCapabilities = nativeBinding.getNativeCapabilities;
-export const getWindowsServiceStatus = nativeBinding.getWindowsServiceStatus;
-export const getLinuxServiceStatus = nativeBinding.getLinuxServiceStatus;
-export const setTerminalProxyEnvironment = nativeBinding.setTerminalProxyEnvironment;
-export const clearTerminalProxyEnvironment = nativeBinding.clearTerminalProxyEnvironment;
-export const findExecutables = nativeBinding.findExecutables;
-export const getLaunchAtLogin = nativeBinding.getLaunchAtLogin;
-export const setLaunchAtLogin = nativeBinding.setLaunchAtLogin;
-export const getNetworkContext = nativeBinding.getNetworkContext;
-export const waitForNetworkContextChange = nativeBinding.waitForNetworkContextChange;
-export const getMacosManagedServiceStatus = nativeBinding.getMacosManagedServiceStatus;
-export const getMacosServiceProcessStatus = nativeBinding.getMacosServiceProcessStatus;
-export const registerMacosManagedService = nativeBinding.registerMacosManagedService;
-export const unregisterMacosManagedService = nativeBinding.unregisterMacosManagedService;
-export const reloadMacosManagedService = nativeBinding.reloadMacosManagedService;
-export const openMacosLoginItemsSettings = nativeBinding.openMacosLoginItemsSettings;
-export const applyMacosApplicationRouting = nativeBinding.applyMacosApplicationRouting;
-export const getMacosApplicationRoutingStatus = nativeBinding.getMacosApplicationRoutingStatus;
-export const stopMacosApplicationRouting = nativeBinding.stopMacosApplicationRouting;
-export const openMacosApplicationRoutingSettings = nativeBinding.openMacosApplicationRoutingSettings;
-export const runServiceLifecycleElevated = nativeBinding.runServiceLifecycleElevated;
-export const cleanupLegacyMacosService = nativeBinding.cleanupLegacyMacosService;
-export const stopMacosManagedService = nativeBinding.stopMacosManagedService;
-export const repairManagedFilePermissions = nativeBinding.repairManagedFilePermissions;
-export const relaunchCurrentApplicationWithPrivilege = nativeBinding.relaunchCurrentApplicationWithPrivilege;
-export const getCorePrivilegeStatus = nativeBinding.getCorePrivilegeStatus;
-export const setCorePrivileges = nativeBinding.setCorePrivileges;
-export const inspectApplication = nativeBinding.inspectApplication;
-export const scanWindowsApplications = nativeBinding.scanWindowsApplications;
-export const getCurrentUserSid = nativeBinding.getCurrentUserSid;
-export const isRunningAsAdmin = nativeBinding.isRunningAsAdmin;
-export const ensureKokoroBoxCoreFirewall = nativeBinding.ensureKokoroBoxCoreFirewall;
-export const listUwpLoopbackApps = nativeBinding.listUwpLoopbackApps;
-export const setUwpLoopbackExemption = nativeBinding.setUwpLoopbackExemption;
-export const ServiceIdentity = nativeBinding.ServiceIdentity;
-export const openServiceIdentity = nativeBinding.openServiceIdentity;
-export const deleteServiceIdentity = nativeBinding.deleteServiceIdentity;
+// Preserve native classes and unsupported exports; wrap callable operations
+// for both named imports and the default binding without changing arguments.
+const diagnosticBinding = {};
+for (const [name, descriptor] of Object.entries(
+  Object.getOwnPropertyDescriptors(nativeBinding),
+)) {
+  if (/^[a-z]/.test(name) && typeof descriptor.value === "function") {
+    descriptor.value = wrapNativeOperation(name, descriptor.value);
+  }
+  Object.defineProperty(diagnosticBinding, name, descriptor);
+}
+diagnosticBinding.drainNativeLogs = drainNativeLogs;
+diagnosticBinding.setNativeLogLevel = setNativeLogLevel;
+export default diagnosticBinding;
+export const fileToDataUrl = diagnosticBinding.fileToDataUrl;
+export const fileToStr = diagnosticBinding.fileToStr;
+export const getAppName = diagnosticBinding.getAppName;
+export const getNativeCapabilities = diagnosticBinding.getNativeCapabilities;
+export const getWindowsServiceStatus =
+  diagnosticBinding.getWindowsServiceStatus;
+export const getLinuxServiceStatus = diagnosticBinding.getLinuxServiceStatus;
+export const setTerminalProxyEnvironment =
+  diagnosticBinding.setTerminalProxyEnvironment;
+export const clearTerminalProxyEnvironment =
+  diagnosticBinding.clearTerminalProxyEnvironment;
+export const findExecutables = diagnosticBinding.findExecutables;
+export const getLaunchAtLogin = diagnosticBinding.getLaunchAtLogin;
+export const setLaunchAtLogin = diagnosticBinding.setLaunchAtLogin;
+export const getNetworkContext = diagnosticBinding.getNetworkContext;
+export const waitForNetworkContextChange =
+  diagnosticBinding.waitForNetworkContextChange;
+export const getMacosManagedServiceStatus =
+  diagnosticBinding.getMacosManagedServiceStatus;
+export const getMacosServiceProcessStatus =
+  diagnosticBinding.getMacosServiceProcessStatus;
+export const registerMacosManagedService =
+  diagnosticBinding.registerMacosManagedService;
+export const unregisterMacosManagedService =
+  diagnosticBinding.unregisterMacosManagedService;
+export const reloadMacosManagedService =
+  diagnosticBinding.reloadMacosManagedService;
+export const openMacosLoginItemsSettings =
+  diagnosticBinding.openMacosLoginItemsSettings;
+export const applyMacosApplicationRouting =
+  diagnosticBinding.applyMacosApplicationRouting;
+export const getMacosApplicationRoutingStatus =
+  diagnosticBinding.getMacosApplicationRoutingStatus;
+export const stopMacosApplicationRouting =
+  diagnosticBinding.stopMacosApplicationRouting;
+export const openMacosApplicationRoutingSettings =
+  diagnosticBinding.openMacosApplicationRoutingSettings;
+export const runServiceLifecycleElevated =
+  diagnosticBinding.runServiceLifecycleElevated;
+export const cleanupLegacyMacosService =
+  diagnosticBinding.cleanupLegacyMacosService;
+export const stopMacosManagedService =
+  diagnosticBinding.stopMacosManagedService;
+export const repairManagedFilePermissions =
+  diagnosticBinding.repairManagedFilePermissions;
+export const relaunchCurrentApplicationWithPrivilege =
+  diagnosticBinding.relaunchCurrentApplicationWithPrivilege;
+export const getCorePrivilegeStatus = diagnosticBinding.getCorePrivilegeStatus;
+export const setCorePrivileges = diagnosticBinding.setCorePrivileges;
+export const inspectApplication = diagnosticBinding.inspectApplication;
+export const scanWindowsApplications =
+  diagnosticBinding.scanWindowsApplications;
+export const getCurrentUserSid = diagnosticBinding.getCurrentUserSid;
+export const isRunningAsAdmin = diagnosticBinding.isRunningAsAdmin;
+export const ensureKokoroBoxCoreFirewall =
+  diagnosticBinding.ensureKokoroBoxCoreFirewall;
+export const listUwpLoopbackApps = diagnosticBinding.listUwpLoopbackApps;
+export const setUwpLoopbackExemption =
+  diagnosticBinding.setUwpLoopbackExemption;
+export const ServiceIdentity = diagnosticBinding.ServiceIdentity;
+export const openServiceIdentity = diagnosticBinding.openServiceIdentity;
+export const deleteServiceIdentity = diagnosticBinding.deleteServiceIdentity;

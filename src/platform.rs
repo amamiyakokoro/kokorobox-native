@@ -865,12 +865,12 @@ fn windows_ip_configuration() -> (Option<String>, Vec<String>) {
 
 #[cfg(target_os = "windows")]
 fn windows_ssid() -> Option<String> {
+    use libloading::os::windows::{LOAD_LIBRARY_SEARCH_SYSTEM32, Library};
     use std::{
         ffi::c_void,
         ptr::{null, null_mut},
         slice,
     };
-    use libloading::os::windows::{Library, LOAD_LIBRARY_SEARCH_SYSTEM32};
     use windows::Win32::{
         Foundation::{ERROR_SUCCESS, HANDLE},
         NetworkManagement::WiFi::{
@@ -882,11 +882,8 @@ fn windows_ssid() -> Option<String> {
     use windows::core::GUID;
 
     type OpenHandle = unsafe extern "system" fn(u32, *const c_void, *mut u32, *mut HANDLE) -> u32;
-    type EnumInterfaces = unsafe extern "system" fn(
-        HANDLE,
-        *const c_void,
-        *mut *mut WLAN_INTERFACE_INFO_LIST,
-    ) -> u32;
+    type EnumInterfaces =
+        unsafe extern "system" fn(HANDLE, *const c_void, *mut *mut WLAN_INTERFACE_INFO_LIST) -> u32;
     type QueryInterface = unsafe extern "system" fn(
         HANDLE,
         *const GUID,
