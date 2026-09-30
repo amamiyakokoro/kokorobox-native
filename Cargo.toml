@@ -63,6 +63,8 @@ windows = { version = "0.62", features = [
     "Win32_NetworkManagement_WiFi",
     "Win32_NetworkManagement_WindowsFirewall",
     "Win32_Networking_WinSock",
+    "Win32_Networking_WinHttp",
+    "Win32_Networking_WinInet",
     "Win32_Security",
     "Win32_Security_Authorization",
     "Win32_System_Com",

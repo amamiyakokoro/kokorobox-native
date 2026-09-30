@@ -13,7 +13,12 @@ mod privileges;
 mod rules;
 mod service_identity;
 mod service_status;
+mod system_proxy;
 mod terminal_proxy;
+pub use system_proxy::{
+    AppContainerState, ProxyEndpoint, SystemProxyDiagnostics, SystemProxySettings,
+    WinHttpProxyState, WindowsProxyDetails, get_system_proxy_diagnostics, set_system_proxy,
+};
 
 #[cfg(not(target_os = "windows"))]
 mod non_windows;

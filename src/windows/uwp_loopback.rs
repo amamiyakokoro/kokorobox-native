@@ -333,6 +333,10 @@ fn fallback_category(package_family_name: &str, working_directory: &str) -> UwpL
     }
 }
 
+pub(crate) fn loopback_exemption_count() -> Result<u32> {
+    Ok(Config::get()?.entries().len() as u32)
+}
+
 pub fn list_uwp_loopback_apps() -> Result<Vec<UwpLoopbackApp>> {
     let containers = AppContainers::get()?;
     let config = Config::get()?;

@@ -199,3 +199,6 @@ export const setUwpLoopbackExemption =
 export const ServiceIdentity = diagnosticBinding.ServiceIdentity;
 export const openServiceIdentity = diagnosticBinding.openServiceIdentity;
 export const deleteServiceIdentity = diagnosticBinding.deleteServiceIdentity;
+
+export const getSystemProxyDiagnostics = diagnosticBinding.getSystemProxyDiagnostics;
+export const setSystemProxy = diagnosticBinding.setSystemProxy;

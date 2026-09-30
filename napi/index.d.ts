@@ -325,3 +325,49 @@ export function ensureKokoroBoxCoreFirewall(
 ): void;
 export function listUwpLoopbackApps(): UwpLoopbackApp[];
 export function setUwpLoopbackExemption(id: string, enabled: boolean): void;
+
+export interface NativeProxyEndpoint {
+  host: string;
+  port: number;
+}
+export interface NativeSystemProxyDiagnostics {
+  platform: "windows" | "darwin" | "linux";
+  status: "available" | "unavailable" | "unsupported";
+  errorCode?: string | null;
+  enabled?: boolean | null;
+  proxies: {
+    http?: NativeProxyEndpoint | null;
+    https?: NativeProxyEndpoint | null;
+    socks?: NativeProxyEndpoint | null;
+  };
+  pac?: { enabled: boolean; url?: string | null } | null;
+  bypass: string[];
+  windows?: {
+    proxyServer?: string | null;
+    proxyOverride?: string | null;
+    autoConfigUrl?: string | null;
+    winHttp: {
+      status: "available" | "unavailable";
+      mode?: "direct" | "proxy" | "advanced" | null;
+      proxy?: string | null;
+      bypass?: string | null;
+      errorCode?: string | null;
+    };
+    appContainer: {
+      supported: boolean;
+      status: "available" | "unavailable";
+      loopbackExemptionCount?: number | null;
+      errorCode?: string | null;
+    };
+  } | null;
+}
+export interface NativeSystemProxySettings {
+  mode: "manual" | "auto" | "disabled";
+  host?: string;
+  port?: number;
+  bypass: string[];
+  pacUrl?: string;
+}
+export declare function getSystemProxyDiagnostics(): Promise<NativeSystemProxyDiagnostics>;
+/** Explicit user action only. Does not modify WinHTTP or AppContainer exemptions. */
+export declare function setSystemProxy(settings: NativeSystemProxySettings): Promise<void>;

@@ -115,3 +115,20 @@ test("an error status is logged without turning it into an exception", () => {
   assert.equal(entry.level, "error");
   assert.equal(entry.msg, status.message);
 });
+
+
+test("system proxy diagnostics log stable state only, including partial failures", async () => {
+  const logs = createNativeDiagnostics();
+  const diagnostic = logs.wrap("getSystemProxyDiagnostics", async () => ({
+    status: "available", enabled: true,
+    pac: { enabled: true, url: "https://USER:SECRET@private.example/token" },
+    windows: { proxyServer: "USER:SECRET@private.example", winHttp: { status: "unavailable" }, appContainer: { status: "available" } }
+  }));
+  await diagnostic();
+  const entries = logs.drain();
+  assert.equal(entries.length, 3);
+  assert.match(entries[0].msg, /Proxy enabled: true/);
+  assert.match(entries[1].msg, /PAC configuration detected/);
+  assert.equal(entries[2].level, "warn");
+  assert.doesNotMatch(JSON.stringify(entries), /USER|SECRET|private|token/);
+});

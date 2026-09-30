@@ -1,6 +1,7 @@
 mod elevation;
 mod firewall;
 mod handle;
+pub(crate) mod system_proxy;
 mod token;
 mod uwp_loopback;
 

@@ -16,6 +16,7 @@ const lifecycleOperations = new Set([
   "stopMacosApplicationRouting",
   "setLaunchAtLogin",
   "setUwpLoopbackExemption",
+  "setSystemProxy",
 ]);
 
 function boundedMessage(value) {
@@ -91,6 +92,14 @@ export function createNativeDiagnostics() {
         throw error;
       };
       const completed = (value) => {
+        if (target === "getSystemProxyDiagnostics") {
+          record(value.status === "available" ? "info" : "warn", "SystemProxy", `[SystemProxy] Configuration: ${value.status}; Proxy enabled: ${value.enabled ?? "unknown"}`);
+          if (value.pac?.enabled) record("info", "SystemProxy", "[SystemProxy] PAC configuration detected");
+          for (const [name, state] of Object.entries({winHttp: value.windows?.winHttp, appContainer: value.windows?.appContainer})) {
+            if (state?.status === "unavailable") record("warn", "SystemProxy", `[SystemProxy] ${name}: unavailable`);
+          }
+          return value;
+        }
         if (value && value.state === "error")
           record(
             "error",
