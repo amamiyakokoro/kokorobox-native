@@ -4,6 +4,8 @@ mod application;
 mod executables;
 mod icons;
 mod linux_service_status;
+#[cfg(any(target_os = "linux", test))]
+mod linux_system_proxy;
 mod macos_app_routing;
 mod macos_service;
 mod macos_service_process_status;
@@ -16,8 +18,9 @@ mod service_status;
 mod system_proxy;
 mod terminal_proxy;
 pub use system_proxy::{
-    AppContainerState, ProxyEndpoint, SystemProxyDiagnostics, SystemProxySettings,
-    WinHttpProxyState, WindowsProxyDetails, get_system_proxy_diagnostics, set_system_proxy,
+    AppContainerState, LinuxProxyDetails, ProxyEndpoint, ProxyEnvironmentEntry, ProxyPortalState,
+    SystemProxyDiagnostics, SystemProxySettings, WinHttpProxyState, WindowsProxyDetails,
+    get_system_proxy_diagnostics, set_system_proxy,
 };
 
 #[cfg(not(target_os = "windows"))]

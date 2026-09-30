@@ -42,6 +42,29 @@ pub struct JsWindowsProxyDetails {
     pub app_container: JsAppContainerState,
 }
 #[napi(object)]
+pub struct JsProxyEnvironmentEntry {
+    pub name: String,
+    pub endpoint: Option<JsProxyEndpoint>,
+    pub bypass: Vec<String>,
+    pub valid: bool,
+}
+#[napi(object)]
+pub struct JsProxyPortalState {
+    pub status: String,
+    pub direct: bool,
+    pub proxies: Vec<JsProxyEndpoint>,
+    pub error_code: Option<String>,
+}
+#[napi(object)]
+pub struct JsLinuxProxyDetails {
+    pub desktop_environment: String,
+    pub backend: String,
+    pub mode: Option<String>,
+    pub reversed_bypass: bool,
+    pub environment: Vec<JsProxyEnvironmentEntry>,
+    pub portal: JsProxyPortalState,
+}
+#[napi(object)]
 pub struct JsSystemProxyDiagnostics {
     pub platform: String,
     pub status: String,
@@ -51,6 +74,7 @@ pub struct JsSystemProxyDiagnostics {
     pub pac: Option<JsPacState>,
     pub bypass: Vec<String>,
     pub windows: Option<JsWindowsProxyDetails>,
+    pub linux: Option<JsLinuxProxyDetails>,
 }
 #[napi(object)]
 pub struct JsSystemProxySettings {
@@ -82,6 +106,28 @@ impl From<kokorobox_native::SystemProxyDiagnostics> for JsSystemProxyDiagnostics
                 url: v.pac_url,
             }),
             bypass: v.bypass,
+            linux: v.linux.map(|l| JsLinuxProxyDetails {
+                desktop_environment: l.desktop_environment,
+                backend: l.backend,
+                mode: l.mode,
+                reversed_bypass: l.reversed_bypass,
+                environment: l
+                    .environment
+                    .into_iter()
+                    .map(|e| JsProxyEnvironmentEntry {
+                        name: e.name,
+                        endpoint: e.endpoint.map(endpoint),
+                        bypass: e.bypass,
+                        valid: e.valid,
+                    })
+                    .collect(),
+                portal: JsProxyPortalState {
+                    status: l.portal.status,
+                    direct: l.portal.direct,
+                    proxies: l.portal.proxies.into_iter().map(endpoint).collect(),
+                    error_code: l.portal.error_code,
+                },
+            }),
             windows: v.windows.map(|w| JsWindowsProxyDetails {
                 proxy_server: w.proxy_server,
                 proxy_override: w.proxy_override,

@@ -19,6 +19,30 @@ pub struct SystemProxyDiagnostics {
     pub pac_url: Option<String>,
     pub bypass: Vec<String>,
     pub windows: Option<WindowsProxyDetails>,
+    pub linux: Option<LinuxProxyDetails>,
+}
+#[derive(Debug, Clone, Default)]
+pub struct LinuxProxyDetails {
+    pub desktop_environment: String,
+    pub backend: String,
+    pub mode: Option<String>,
+    pub reversed_bypass: bool,
+    pub environment: Vec<ProxyEnvironmentEntry>,
+    pub portal: ProxyPortalState,
+}
+#[derive(Debug, Clone)]
+pub struct ProxyEnvironmentEntry {
+    pub name: String,
+    pub endpoint: Option<ProxyEndpoint>,
+    pub bypass: Vec<String>,
+    pub valid: bool,
+}
+#[derive(Debug, Clone, Default)]
+pub struct ProxyPortalState {
+    pub status: String,
+    pub direct: bool,
+    pub proxies: Vec<ProxyEndpoint>,
+    pub error_code: Option<String>,
 }
 #[derive(Debug, Clone)]
 pub struct WindowsProxyDetails {
@@ -57,7 +81,11 @@ pub fn get_system_proxy_diagnostics() -> SystemProxyDiagnostics {
     {
         crate::windows::system_proxy::get_diagnostics()
     }
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(target_os = "linux")]
+    {
+        crate::linux_system_proxy::get_diagnostics()
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
     {
         SystemProxyDiagnostics {
             platform: std::env::consts::OS.replace("macos", "darwin"),
@@ -151,7 +179,7 @@ mod tests {
         assert!(validate_settings(&settings).is_err());
     }
     #[test]
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
     fn unsupported_is_unknown_not_disabled() {
         let result = get_system_proxy_diagnostics();
         assert_eq!(result.status, "unsupported");

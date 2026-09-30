@@ -94,6 +94,11 @@ export function createNativeDiagnostics() {
       const completed = (value) => {
         if (target === "getSystemProxyDiagnostics") {
           record(value.status === "available" ? "info" : "warn", "SystemProxy", `[SystemProxy] Configuration: ${value.status}; Proxy enabled: ${value.enabled ?? "unknown"}`);
+          if (value.linux) {
+            const backend = ["gnome", "kde", "environment", "unsupported"].includes(value.linux.backend) ? value.linux.backend : "unknown";
+            const portal = value.linux.portal?.status === "available" ? "available" : "unavailable";
+            record("info", "SystemProxy", `[SystemProxy] Linux backend: ${backend}; Portal: ${portal}`);
+          }
           if (value.pac?.enabled) record("info", "SystemProxy", "[SystemProxy] PAC configuration detected");
           for (const [name, state] of Object.entries({winHttp: value.windows?.winHttp, appContainer: value.windows?.appContainer})) {
             if (state?.status === "unavailable") record("warn", "SystemProxy", `[SystemProxy] ${name}: unavailable`);

@@ -132,3 +132,18 @@ test("system proxy diagnostics log stable state only, including partial failures
   assert.equal(entries[2].level, "warn");
   assert.doesNotMatch(JSON.stringify(entries), /USER|SECRET|private|token/);
 });
+
+
+test("Linux diagnostics log backend availability without environment or Portal secrets", async () => {
+  const logs = createNativeDiagnostics();
+  await logs.wrap("getSystemProxyDiagnostics", async () => ({
+    status: "unsupported", enabled: null,
+    linux: { backend: "environment", desktopEnvironment: "SECRET",
+      environment: [{ name: "HTTPS_PROXY", endpoint: { host: "SECRET", port: 18423 } }],
+      portal: { status: "unavailable", errorCode: "SECRET" } }
+  }))();
+  const entries = logs.drain();
+  assert.equal(entries.length, 2);
+  assert.match(entries[1].msg, /Linux backend: environment; Portal: unavailable/);
+  assert.doesNotMatch(JSON.stringify(entries), /SECRET|HTTPS_PROXY|18423/);
+});

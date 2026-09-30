@@ -342,6 +342,14 @@ export interface NativeSystemProxyDiagnostics {
   };
   pac?: { enabled: boolean; url?: string | null } | null;
   bypass: string[];
+  linux?: {
+    desktopEnvironment: string;
+    backend: "gnome" | "kde" | "environment" | "unsupported";
+    mode?: "none" | "manual" | "auto" | "wpad" | "environment" | null;
+    reversedBypass: boolean;
+    environment: { name: string; endpoint?: NativeProxyEndpoint | null; bypass: string[]; valid: boolean }[];
+    portal: { status: "available" | "unavailable"; direct: boolean; proxies: NativeProxyEndpoint[]; errorCode?: string | null };
+  } | null;
   windows?: {
     proxyServer?: string | null;
     proxyOverride?: string | null;
