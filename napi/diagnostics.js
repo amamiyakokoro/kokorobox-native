@@ -94,6 +94,11 @@ export function createNativeDiagnostics() {
       const completed = (value) => {
         if (target === "getSystemProxyDiagnostics") {
           record(value.status === "available" ? "info" : "warn", "SystemProxy", `[SystemProxy] Configuration: ${value.status}; Proxy enabled: ${value.enabled ?? "unknown"}`);
+          if (value.macos) {
+            const effective = value.macos.effective;
+            const count = value.macos.activeServiceIds?.length ?? 0;
+            record("info", "SystemProxy", `[SystemProxy/macOS] Active network services: ${count}; HTTP: ${effective?.http?.enabled ?? "unknown"}; HTTPS: ${effective?.https?.enabled ?? "unknown"}; PAC: ${effective?.pacEnabled ?? "unknown"}; Auto discovery: ${effective?.autoDiscovery ?? "unknown"}`);
+          }
           if (value.linux) {
             const backend = ["gnome", "kde", "environment", "unsupported"].includes(value.linux.backend) ? value.linux.backend : "unknown";
             const portal = value.linux.portal?.status === "available" ? "available" : "unavailable";

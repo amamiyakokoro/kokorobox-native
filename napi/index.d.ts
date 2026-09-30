@@ -330,6 +330,41 @@ export interface NativeProxyEndpoint {
   host: string;
   port: number;
 }
+export interface MacProxyProtocol {
+  enabled: boolean;
+  endpoint?: NativeProxyEndpoint | null;
+}
+export interface MacProxyState {
+  http: MacProxyProtocol;
+  https: MacProxyProtocol;
+  socks: MacProxyProtocol;
+  pacEnabled: boolean;
+  pacUrl?: string | null;
+  autoDiscovery: boolean;
+  bypass: string[];
+  excludeSimpleHostnames: boolean;
+}
+export interface MacNetworkService {
+  id: string;
+  name: string;
+  interface?: string | null;
+  enabled: boolean;
+  active: boolean;
+  primary: boolean;
+  status: "available" | "unavailable";
+  proxies?: MacProxyState | null;
+}
+export interface MacOSProxyDetails {
+  effective?: MacProxyState | null;
+  activeServiceIds: string[];
+  services: MacNetworkService[];
+  networkLocation?: string | null;
+  locationErrorCode?: string | null;
+  serviceErrorCode?: string | null;
+}
+export interface NativeSystemProxyMutation {
+  automaticSettingsPreserved: boolean;
+}
 export interface NativeSystemProxyDiagnostics {
   platform: "windows" | "darwin" | "linux";
   status: "available" | "unavailable" | "unsupported";
@@ -342,6 +377,7 @@ export interface NativeSystemProxyDiagnostics {
   };
   pac?: { enabled: boolean; url?: string | null } | null;
   bypass: string[];
+  macos?: MacOSProxyDetails | null;
   linux?: {
     desktopEnvironment: string;
     backend: "gnome" | "kde" | "environment" | "unsupported";
@@ -375,7 +411,8 @@ export interface NativeSystemProxySettings {
   port?: number;
   bypass: string[];
   pacUrl?: string;
+  onlyActiveDevice?: boolean;
 }
 export declare function getSystemProxyDiagnostics(): Promise<NativeSystemProxyDiagnostics>;
-/** Explicit user action only. Does not modify WinHTTP or AppContainer exemptions. */
-export declare function setSystemProxy(settings: NativeSystemProxySettings): Promise<void>;
+/** Explicit user action only. Leaves WinHTTP/UWP unchanged; macOS manual restore preserves PAC/discovery. */
+export declare function setSystemProxy(settings: NativeSystemProxySettings): Promise<NativeSystemProxyMutation>;

@@ -20,6 +20,47 @@ pub struct SystemProxyDiagnostics {
     pub bypass: Vec<String>,
     pub windows: Option<WindowsProxyDetails>,
     pub linux: Option<LinuxProxyDetails>,
+    pub macos: Option<MacOSProxyDetails>,
+}
+#[derive(Debug, Clone, Default)]
+pub struct MacProxyProtocol {
+    pub enabled: bool,
+    pub endpoint: Option<ProxyEndpoint>,
+}
+#[derive(Debug, Clone, Default)]
+pub struct MacProxyState {
+    pub http: MacProxyProtocol,
+    pub https: MacProxyProtocol,
+    pub socks: MacProxyProtocol,
+    pub pac_enabled: bool,
+    pub pac_url: Option<String>,
+    pub auto_discovery: bool,
+    pub bypass: Vec<String>,
+    pub exclude_simple_hostnames: bool,
+}
+#[derive(Debug, Clone, Default)]
+pub struct MacNetworkService {
+    pub id: String,
+    pub name: String,
+    pub interface: Option<String>,
+    pub enabled: bool,
+    pub active: bool,
+    pub primary: bool,
+    pub status: String,
+    pub proxies: Option<MacProxyState>,
+}
+#[derive(Debug, Clone, Default)]
+pub struct MacOSProxyDetails {
+    pub effective: Option<MacProxyState>,
+    pub active_service_ids: Vec<String>,
+    pub services: Vec<MacNetworkService>,
+    pub network_location: Option<String>,
+    pub location_error_code: Option<String>,
+    pub service_error_code: Option<String>,
+}
+#[derive(Debug, Clone, Default)]
+pub struct SystemProxyMutation {
+    pub automatic_settings_preserved: bool,
 }
 #[derive(Debug, Clone, Default)]
 pub struct LinuxProxyDetails {
@@ -74,6 +115,7 @@ pub struct SystemProxySettings {
     pub port: Option<u16>,
     pub bypass: Vec<String>,
     pub pac_url: Option<String>,
+    pub only_active_device: bool,
 }
 
 pub fn get_system_proxy_diagnostics() -> SystemProxyDiagnostics {
@@ -85,7 +127,11 @@ pub fn get_system_proxy_diagnostics() -> SystemProxyDiagnostics {
     {
         crate::linux_system_proxy::get_diagnostics()
     }
-    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+    #[cfg(target_os = "macos")]
+    {
+        crate::macos_system_proxy::get_diagnostics()
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
     {
         SystemProxyDiagnostics {
             platform: std::env::consts::OS.replace("macos", "darwin"),
@@ -96,13 +142,17 @@ pub fn get_system_proxy_diagnostics() -> SystemProxyDiagnostics {
     }
 }
 
-pub fn set_system_proxy(settings: &SystemProxySettings) -> Result<()> {
+pub fn set_system_proxy(settings: &SystemProxySettings) -> Result<SystemProxyMutation> {
     validate_settings(settings)?;
     #[cfg(target_os = "windows")]
     {
-        crate::windows::system_proxy::set_proxy(settings)
+        crate::windows::system_proxy::set_proxy(settings).map(|_| SystemProxyMutation::default())
     }
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(target_os = "macos")]
+    {
+        crate::macos_system_proxy::set_proxy(settings)
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
     {
         bail!("unsupported-platform")
     }
@@ -170,6 +220,7 @@ mod tests {
             port: Some(18423),
             bypass: vec!["<local>".into()],
             pac_url: None,
+            only_active_device: false,
         };
         assert!(validate_settings(&settings).is_ok());
         settings.port = Some(0);
@@ -179,7 +230,7 @@ mod tests {
         assert!(validate_settings(&settings).is_err());
     }
     #[test]
-    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+    #[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
     fn unsupported_is_unknown_not_disabled() {
         let result = get_system_proxy_diagnostics();
         assert_eq!(result.status, "unsupported");

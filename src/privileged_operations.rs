@@ -166,7 +166,7 @@ fn run_service(executable: &Path, arguments: &[String]) -> Result<()> {
 }
 
 #[cfg(target_os = "macos")]
-fn shell_quote(value: &str) -> String {
+pub(crate) fn shell_quote(value: &str) -> String {
     format!("'{}'", value.replace('\'', "'\\''"))
 }
 
@@ -192,6 +192,38 @@ fn run_macos_privileged_shell(shell: &str, error_code: &str) -> Result<()> {
         );
     }
     Ok(())
+}
+
+#[cfg(target_os = "macos")]
+pub(crate) fn run_macos_privileged_shell_bounded(shell: &str) -> Result<()> {
+    use std::{
+        process::Stdio,
+        time::{Duration, Instant},
+    };
+    let script = format!(
+        "do shell script \"{}\" with administrator privileges",
+        applescript_escape(shell)
+    );
+    let mut child = std::process::Command::new("/usr/bin/osascript")
+        .args(["-e", &script])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|_| anyhow::anyhow!("permission-denied"))?;
+    let deadline = Instant::now() + Duration::from_secs(90);
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) if status.success() => return Ok(()),
+            Ok(Some(_)) => bail!("permission-denied"),
+            Ok(None) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(50)),
+            _ => {
+                let _ = child.kill();
+                let _ = child.wait();
+                bail!("operation-timeout");
+            }
+        }
+    }
 }
 
 #[cfg(target_os = "macos")]

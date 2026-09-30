@@ -43,6 +43,24 @@ The traffic presenter emits JSON Lines to stderr. The Windows portable updater
 also saves its last run in `%TEMP%/kokorobox-portable-updater.log` because Desktop
 exits before extraction. These sidecars include Unix milliseconds in `timestamp`.
 
+## System Proxy diagnostics
+
+`getSystemProxyDiagnostics()` returns actual OS configuration with independent
+availability information. Windows, macOS and Linux share the same entry point;
+platform-specific details are nested under `windows`, `macos` or `linux`.
+macOS uses SystemConfiguration for effective HTTP/HTTPS/SOCKS, PAC/discovery,
+primary IPv4/IPv6 services and the current Network Location. Reading never asks
+for administrator authorization. Runtime health and connectivity belong to
+KokoroBox Service, not this API.
+
+`setSystemProxy(settings)` supports explicit Windows/macOS manual, PAC and
+disabled actions. macOS honors `onlyActiveDevice`, preserves PAC/discovery
+when restoring manual proxies, and reuses Native's administrator dialog if
+required for a write. Its structured result includes
+`automaticSettingsPreserved`; callers must not resume a legacy watchdog or
+cleanup that would erase those settings. Never invoke this setter merely to
+inspect or refresh diagnostics.
+
 ## Documentation
 
 - [JavaScript API guide](../docs/api.md)

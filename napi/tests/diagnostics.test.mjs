@@ -147,3 +147,22 @@ test("Linux diagnostics log backend availability without environment or Portal s
   assert.match(entries[1].msg, /Linux backend: environment; Portal: unavailable/);
   assert.doesNotMatch(JSON.stringify(entries), /SECRET|HTTPS_PROXY|18423/);
 });
+
+
+test("macOS diagnostics log protocol flags without service names or private configuration", async () => {
+  const logs = createNativeDiagnostics();
+  await logs.wrap("getSystemProxyDiagnostics", async () => ({
+    status: "available", enabled: true,
+    pac: { enabled: true, url: "https://USER:SECRET@private.example/pac?token=SECRET" },
+    macos: {
+      activeServiceIds: ["SECRET"], networkLocation: "SECRET",
+      effective: { http: { enabled: true, endpoint: { host: "SECRET", port: 18423 } },
+        https: { enabled: false }, pacEnabled: true, autoDiscovery: true },
+      services: [{ name: "SECRET", proxies: { bypass: ["SECRET"] } }]
+    }
+  }))();
+  const entries = logs.drain();
+  assert.match(entries.find(e => e.msg.includes("[SystemProxy/macOS]")).msg,
+    /Active network services: 1; HTTP: true; HTTPS: false; PAC: true; Auto discovery: true/);
+  assert.doesNotMatch(JSON.stringify(entries), /USER|SECRET|private|token|18423/);
+});

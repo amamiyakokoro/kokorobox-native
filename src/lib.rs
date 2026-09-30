@@ -9,6 +9,8 @@ mod linux_system_proxy;
 mod macos_app_routing;
 mod macos_service;
 mod macos_service_process_status;
+#[cfg(target_os = "macos")]
+mod macos_system_proxy;
 mod platform;
 mod privileged_operations;
 mod privileges;
@@ -18,8 +20,9 @@ mod service_status;
 mod system_proxy;
 mod terminal_proxy;
 pub use system_proxy::{
-    AppContainerState, LinuxProxyDetails, ProxyEndpoint, ProxyEnvironmentEntry, ProxyPortalState,
-    SystemProxyDiagnostics, SystemProxySettings, WinHttpProxyState, WindowsProxyDetails,
+    AppContainerState, LinuxProxyDetails, MacNetworkService, MacOSProxyDetails, MacProxyProtocol,
+    MacProxyState, ProxyEndpoint, ProxyEnvironmentEntry, ProxyPortalState, SystemProxyDiagnostics,
+    SystemProxyMutation, SystemProxySettings, WinHttpProxyState, WindowsProxyDetails,
     get_system_proxy_diagnostics, set_system_proxy,
 };
 
