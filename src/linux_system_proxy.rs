@@ -140,7 +140,11 @@ fn command(program: &str, args: &[&str], deadline: Instant) -> Result<String, &'
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .spawn()
-        .map_err(|_| "backend-unavailable")?;
+        .map_err(|error| match error.kind() {
+            std::io::ErrorKind::NotFound => "backend-unavailable",
+            std::io::ErrorKind::PermissionDenied => "backend-permission-denied",
+            _ => "backend-read-failed",
+        })?;
     let stdout = child.stdout.take().ok_or("backend-read-failed")?;
     let (tx, rx) = mpsc::channel();
     thread::spawn(move || {
@@ -294,6 +298,33 @@ fn gnome(
         ..Default::default()
     })
 }
+fn kde_with_reader(
+    read: impl Fn(&str, &str, &str) -> Result<String, &'static str> + Sync,
+    get_env: impl Fn(&str) -> Option<String>,
+) -> Result<SystemProxyDiagnostics, &'static str> {
+    for tool in ["kreadconfig6", "kreadconfig5"] {
+        // kreadconfig supports configuration queries, but has no --version option.
+        // Read the actual mode to select the tool and reuse it in the snapshot.
+        match read(tool, "ProxyType", "0") {
+            Ok(mode) => {
+                return kde(
+                    |key, default| {
+                        if key == "ProxyType" {
+                            Ok(mode.clone())
+                        } else {
+                            read(tool, key, default)
+                        }
+                    },
+                    get_env,
+                );
+            }
+            Err("backend-unavailable") => continue,
+            Err(code) => return Err(code),
+        }
+    }
+    Err("backend-unavailable")
+}
+
 fn kde(
     read: impl Fn(&str, &str) -> Result<String, &'static str> + Sync,
     get_env: impl Fn(&str) -> Option<String>,
@@ -418,31 +449,25 @@ pub fn get_diagnostics() -> SystemProxyDiagnostics {
     } else if desktop == "KDE Plasma" {
         // A working KDE configuration tool confirms availability and honors KConfig
         // defaults, cascaded XDG locations and immutable entries; no home-file parser.
-        let tool = ["kreadconfig6", "kreadconfig5"]
-            .into_iter()
-            .find(|p| command(p, &["--version"], deadline).is_ok());
-        match tool {
-            Some(tool) => kde(
-                |k, d| {
-                    command(
-                        tool,
-                        &[
-                            "--file",
-                            "kioslaverc",
-                            "--group",
-                            "Proxy Settings",
-                            "--key",
-                            k,
-                            "--default",
-                            d,
-                        ],
-                        deadline,
-                    )
-                },
-                env,
-            ),
-            None => Err("backend-unavailable"),
-        }
+        kde_with_reader(
+            |tool, key, default| {
+                command(
+                    tool,
+                    &[
+                        "--file",
+                        "kioslaverc",
+                        "--group",
+                        "Proxy Settings",
+                        "--key",
+                        key,
+                        "--default",
+                        default,
+                    ],
+                    deadline,
+                )
+            },
+            env,
+        )
     } else {
         Ok(SystemProxyDiagnostics {
             platform: "linux".into(),
@@ -598,6 +623,93 @@ mod tests {
                 if number == "4" { 19351 } else { 18423 }
             );
         }
+    }
+    #[test]
+    fn kde_reader_selection_uses_a_real_mode_query_and_reuses_it() {
+        let calls = std::sync::Mutex::new(Vec::new());
+        let result = kde_with_reader(
+            |tool, key, default| {
+                calls
+                    .lock()
+                    .unwrap()
+                    .push((tool.to_owned(), key.to_owned()));
+                assert_eq!(tool, "kreadconfig6");
+                Ok(match key {
+                    "ProxyType" => "1",
+                    "httpProxy" | "httpsProxy" => "http://127.0.0.1 18423",
+                    _ => default,
+                }
+                .into())
+            },
+            |_| None,
+        )
+        .unwrap();
+        assert_eq!(result.status, "available");
+        assert_eq!(result.http.unwrap().port, 18423);
+        assert_eq!(result.https.unwrap().port, 18423);
+        let calls = calls.into_inner().unwrap();
+        assert_eq!(calls.len(), 7);
+        assert_eq!(calls[0], ("kreadconfig6".into(), "ProxyType".into()));
+        assert_eq!(
+            calls.iter().filter(|(_, key)| key == "ProxyType").count(),
+            1
+        );
+    }
+    #[test]
+    fn kde_reader_selection_falls_back_when_kde6_is_missing() {
+        let result = kde_with_reader(
+            |tool, key, default| {
+                if tool == "kreadconfig6" {
+                    assert_eq!(key, "ProxyType");
+                    return Err("backend-unavailable");
+                }
+                assert_eq!(tool, "kreadconfig5");
+                Ok(default.into())
+            },
+            |_| None,
+        )
+        .unwrap();
+        assert_eq!(result.enabled, Some(false));
+        assert_eq!(result.linux.unwrap().mode.as_deref(), Some("none"));
+        assert_eq!(
+            kde_with_reader(|_, _, _| Err("backend-unavailable"), |_| None).unwrap_err(),
+            "backend-unavailable"
+        );
+    }
+    #[test]
+    fn kde_reader_selection_preserves_query_failures() {
+        for code in [
+            "timeout",
+            "backend-permission-denied",
+            "backend-read-failed",
+        ] {
+            let result = kde_with_reader(
+                |tool, key, _| {
+                    assert_eq!(tool, "kreadconfig6");
+                    assert_eq!(key, "ProxyType");
+                    Err(code)
+                },
+                |_| None,
+            );
+            assert_eq!(result.unwrap_err(), code);
+        }
+        assert_eq!(
+            kde_with_reader(|_, _, _| Ok("invalid".into()), |_| None).unwrap_err(),
+            "backend-read-failed"
+        );
+    }
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn subprocess_start_errors_distinguish_missing_and_permission_denied() {
+        let deadline = Instant::now() + Duration::from_secs(1);
+        assert_eq!(
+            command("/kokorobox-nonexistent-config-reader", &[], deadline),
+            Err("backend-unavailable")
+        );
+        assert_eq!(
+            command("/", &[], deadline),
+            Err("backend-permission-denied")
+        );
     }
     #[test]
     fn subprocess_timeout_is_bounded() {
