@@ -202,3 +202,4 @@ export const deleteServiceIdentity = diagnosticBinding.deleteServiceIdentity;
 
 export const getSystemProxyDiagnostics = diagnosticBinding.getSystemProxyDiagnostics;
 export const setSystemProxy = diagnosticBinding.setSystemProxy;
+export const getSystemDnsDiagnostics = diagnosticBinding.getSystemDnsDiagnostics;

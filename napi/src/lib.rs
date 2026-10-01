@@ -11,6 +11,7 @@ mod privileged_operations;
 mod privileges;
 mod rules;
 mod service_identity;
+mod system_dns;
 mod system_proxy;
 mod terminal_proxy;
 mod windows;

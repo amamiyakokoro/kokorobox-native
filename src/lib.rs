@@ -17,7 +17,9 @@ mod privileges;
 mod rules;
 mod service_identity;
 mod service_status;
+mod system_dns;
 mod system_proxy;
+pub use system_dns::{DNSQuery, SystemDNSDiagnostics, get_system_dns_diagnostics};
 mod terminal_proxy;
 pub use system_proxy::{
     AppContainerState, LinuxProxyDetails, MacNetworkService, MacOSProxyDetails, MacProxyProtocol,
@@ -146,6 +148,7 @@ pub struct NativeCapabilities {
     pub launch_at_login: bool,
     pub network_context: bool,
     pub network_monitor: bool,
+    pub system_dns_diagnostics: bool,
     pub service_lifecycle: bool,
     pub managed_file_permissions: bool,
     pub macos_service_management: bool,
@@ -179,6 +182,11 @@ pub fn native_capabilities() -> NativeCapabilities {
             target_os = "linux"
         )),
         network_monitor: cfg!(any(
+            target_os = "windows",
+            target_os = "macos",
+            target_os = "linux"
+        )),
+        system_dns_diagnostics: cfg!(any(
             target_os = "windows",
             target_os = "macos",
             target_os = "linux"

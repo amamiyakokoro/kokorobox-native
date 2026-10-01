@@ -33,6 +33,7 @@ export interface NativeCapabilities {
   launchAtLogin: boolean;
   networkContext: boolean;
   networkMonitor: boolean;
+  systemDnsDiagnostics: boolean;
   serviceLifecycle: boolean;
   managedFilePermissions: boolean;
   macosServiceManagement: boolean;
@@ -416,3 +417,16 @@ export interface NativeSystemProxySettings {
 export declare function getSystemProxyDiagnostics(): Promise<NativeSystemProxyDiagnostics>;
 /** Explicit user action only. Leaves WinHTTP/UWP unchanged; macOS manual restore preserves PAC/discovery. */
 export declare function setSystemProxy(settings: NativeSystemProxySettings): Promise<NativeSystemProxyMutation>;
+export interface DnsResolutionQuery {
+  domain: string
+  outcome: 'success' | 'failed' | 'unavailable'
+}
+export interface SystemDnsDiagnostics {
+  outcome: 'success' | 'failed' | 'unavailable'
+  queries: DnsResolutionQuery[]
+  interface?: string | null
+  service?: string | null
+  servers: string[]
+}
+/** Read-only system resolver probes and the current primary network DNS. */
+export declare function getSystemDnsDiagnostics(): Promise<SystemDnsDiagnostics>

@@ -71,3 +71,15 @@ inspect or refresh diagnostics.
 
 Derived from [UruhaLushia/sparkle-native](https://github.com/UruhaLushia/sparkle-native)
 and licensed under GPL-3.0-only.
+### System DNS diagnostics
+
+`getSystemDnsDiagnostics()` asynchronously probes the OS resolver for fixed
+public test domains (`www.gstatic.com`, `example.com`) and returns per-domain
+outcomes, the primary interface/service and current DNS IP addresses. It is
+read-only on Windows, macOS and Linux. No input domains, arbitrary commands,
+credentials or SSIDs are accepted or returned. Linux prefers per-link DNS from
+NetworkManager/systemd-resolved and falls back to resolv.conf for inspection.
+
+Bootstrap repair is Desktop configuration policy: Desktop copies the observed
+system DNS addresses into `dns.default-nameserver` and restarts the core. Native
+does not expose an OS DNS mutation API for diagnostics.
