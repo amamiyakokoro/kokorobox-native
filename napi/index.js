@@ -206,3 +206,5 @@ export const getSystemDnsDiagnostics = diagnosticBinding.getSystemDnsDiagnostics
 
 export const inspectCoreProcess = diagnosticBinding.inspectCoreProcess;
 export const stopCoreProcess = diagnosticBinding.stopCoreProcess;
+
+export const reconcileMacosApplicationRouting = diagnosticBinding.reconcileMacosApplicationRouting;

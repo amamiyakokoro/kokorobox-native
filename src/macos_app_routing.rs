@@ -209,9 +209,115 @@ fn invoke_typed(
     parse_response(&response)
 }
 
+#[derive(Debug, Clone)]
+pub struct MacosApplicationRoutingSnapshot {
+    pub status: MacosApplicationRoutingStatus,
+    pub proxy_available: bool,
+}
+
+#[derive(Default)]
+struct ReconcileState {
+    active_policy: String,
+    last_health_check: Option<std::time::Instant>,
+}
+impl ReconcileState {
+    fn should_apply(
+        &self,
+        policy: &str,
+        status: MacosApplicationRoutingState,
+        now: std::time::Instant,
+    ) -> bool {
+        policy != self.active_policy
+            || matches!(
+                status,
+                MacosApplicationRoutingState::Disabled | MacosApplicationRoutingState::Error
+            )
+            || (status == MacosApplicationRoutingState::Running
+                && self.last_health_check.is_none_or(|at| {
+                    now.saturating_duration_since(at) >= std::time::Duration::from_secs(15)
+                }))
+    }
+    fn record(
+        &mut self,
+        policy: String,
+        status: MacosApplicationRoutingState,
+        now: std::time::Instant,
+    ) {
+        if status == MacosApplicationRoutingState::Running {
+            self.active_policy = policy;
+            self.last_health_check = Some(now);
+        } else {
+            self.active_policy.clear();
+            self.last_health_check = None;
+        }
+    }
+}
+fn reconcile_state() -> &'static std::sync::Mutex<ReconcileState> {
+    static STATE: std::sync::OnceLock<std::sync::Mutex<ReconcileState>> =
+        std::sync::OnceLock::new();
+    STATE.get_or_init(Default::default)
+}
+
+fn socks5_available(address: std::net::SocketAddr) -> bool {
+    use std::io::{Read, Write};
+    let budget = std::time::Duration::from_millis(700);
+    let deadline = std::time::Instant::now() + budget;
+    let probe = || -> std::io::Result<bool> {
+        let mut stream = std::net::TcpStream::connect_timeout(&address, budget)?;
+        let remaining = || {
+            deadline
+                .checked_duration_since(std::time::Instant::now())
+                .filter(|d| !d.is_zero())
+                .ok_or_else(|| std::io::Error::from(std::io::ErrorKind::TimedOut))
+        };
+        stream.set_write_timeout(Some(remaining()?))?;
+        stream.write_all(&[5, 1, 0])?;
+        stream.set_read_timeout(Some(remaining()?))?;
+        let mut greeting = [0; 2];
+        stream.read_exact(&mut greeting)?;
+        Ok(greeting == [5, 0])
+    };
+    probe().unwrap_or(false)
+}
+
+/// Serialize listener verification, policy acknowledgement and provider health
+/// checks on the Native worker. Desktop only submits desired application rules.
+pub fn reconcile_macos_application_routing(
+    configuration: &MacosApplicationRoutingConfiguration,
+) -> Result<MacosApplicationRoutingSnapshot> {
+    if !cfg!(target_os = "macos") {
+        return Err(anyhow!(
+            "UNSUPPORTED_PLATFORM: macOS application routing requires macOS"
+        ));
+    }
+    let mut state = reconcile_state()
+        .lock()
+        .map_err(|_| anyhow!("routing coordinator unavailable"))?;
+    let mut desired = configuration.clone();
+    let requires_proxy = desired
+        .rules
+        .iter()
+        .any(|rule| rule.enabled && matches!(rule.action, MacosApplicationRoutingAction::Proxy));
+    desired.proxy_available = requires_proxy && socks5_available(([127, 0, 0, 1], 7891).into());
+    let policy = request_json(WireCommand::Apply, Some(&desired))?;
+    let mut status = invoke_typed(WireCommand::Status, None)?;
+    if state.should_apply(&policy, status.state, std::time::Instant::now()) {
+        status = invoke_typed(WireCommand::Apply, Some(&desired))?;
+        state.record(policy, status.state, std::time::Instant::now());
+    }
+    Ok(MacosApplicationRoutingSnapshot {
+        status,
+        proxy_available: desired.proxy_available,
+    })
+}
+
 pub fn apply_macos_application_routing(
     configuration: &MacosApplicationRoutingConfiguration,
 ) -> Result<MacosApplicationRoutingStatus> {
+    let mut state = reconcile_state()
+        .lock()
+        .map_err(|_| anyhow!("routing coordinator unavailable"))?;
+    *state = ReconcileState::default();
     invoke_typed(WireCommand::Apply, Some(configuration))
 }
 
@@ -220,6 +326,10 @@ pub fn get_macos_application_routing_status() -> Result<MacosApplicationRoutingS
 }
 
 pub fn stop_macos_application_routing() -> Result<MacosApplicationRoutingStatus> {
+    let mut state = reconcile_state()
+        .lock()
+        .map_err(|_| anyhow!("routing coordinator unavailable"))?;
+    *state = ReconcileState::default();
     invoke_typed(WireCommand::Stop, None)
 }
 
@@ -362,5 +472,40 @@ mod tests {
         assert!(validate_request(&"x".repeat(MAXIMUM_REQUEST_BYTES + 1)).is_err());
         assert!(validate_request("bad\0request").is_err());
         assert!(validate_request(r#"{"version":1,"command":"status"}"#).is_ok());
+    }
+    #[test]
+    fn listener_health_requires_complete_no_auth_socks_greeting() {
+        use std::io::{Read, Write};
+        for response in [[5, 0], [5, 2], [4, 0]] {
+            let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+            let address = listener.local_addr().unwrap();
+            let worker = std::thread::spawn(move || {
+                let (mut stream, _) = listener.accept().unwrap();
+                let mut request = [0; 3];
+                stream.read_exact(&mut request).unwrap();
+                assert_eq!(request, [5, 1, 0]);
+                // Split frames verify that Native handles partial reads.
+                stream.write_all(&response[..1]).unwrap();
+                stream.write_all(&response[1..]).unwrap();
+            });
+            assert_eq!(socks5_available(address), response == [5, 0]);
+            worker.join().unwrap();
+        }
+    }
+    #[test]
+    fn policy_requires_running_acknowledgement_and_bounded_health_refresh() {
+        let now = std::time::Instant::now();
+        let mut state = ReconcileState::default();
+        state.record("policy".into(), MacosApplicationRoutingState::Starting, now);
+        assert!(state.should_apply("policy", MacosApplicationRoutingState::Starting, now));
+        state.record("policy".into(), MacosApplicationRoutingState::Running, now);
+        assert!(!state.should_apply("policy", MacosApplicationRoutingState::Running, now));
+        assert!(state.should_apply("new-policy", MacosApplicationRoutingState::Running, now));
+        assert!(state.should_apply("policy", MacosApplicationRoutingState::Disabled, now));
+        assert!(state.should_apply(
+            "policy",
+            MacosApplicationRoutingState::Running,
+            now + std::time::Duration::from_secs(15)
+        ));
     }
 }

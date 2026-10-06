@@ -44,9 +44,10 @@ pub use linux_service_status::{LinuxServiceStatus, get_linux_service_status};
 pub use macos_app_routing::{
     MacosApplicationRoutingAction, MacosApplicationRoutingConfiguration,
     MacosApplicationRoutingIdentifierKind, MacosApplicationRoutingProtocol,
-    MacosApplicationRoutingRule, MacosApplicationRoutingState, MacosApplicationRoutingStatus,
-    apply_macos_application_routing, get_macos_application_routing_status,
-    open_macos_application_routing_settings, stop_macos_application_routing,
+    MacosApplicationRoutingRule, MacosApplicationRoutingSnapshot, MacosApplicationRoutingState,
+    MacosApplicationRoutingStatus, apply_macos_application_routing,
+    get_macos_application_routing_status, open_macos_application_routing_settings,
+    reconcile_macos_application_routing, stop_macos_application_routing,
 };
 pub use macos_service::{
     MacOSManagedServiceStatus, get_macos_managed_service_status, open_macos_login_items_settings,
@@ -156,6 +157,7 @@ pub struct NativeCapabilities {
     pub managed_file_permissions: bool,
     pub macos_service_management: bool,
     pub macos_application_routing: bool,
+    pub macos_routing_reconcile: bool,
     pub windows_privilege_relaunch: bool,
     pub windows_uwp_loopback: bool,
     pub windows_service_status: bool,
@@ -207,6 +209,7 @@ pub fn native_capabilities() -> NativeCapabilities {
         managed_file_permissions: cfg!(any(target_os = "macos", target_os = "linux")),
         macos_service_management: cfg!(target_os = "macos"),
         macos_application_routing: cfg!(target_os = "macos"),
+        macos_routing_reconcile: cfg!(target_os = "macos"),
         windows_privilege_relaunch: cfg!(target_os = "windows"),
         windows_uwp_loopback: cfg!(target_os = "windows"),
         windows_service_status: cfg!(target_os = "windows"),

@@ -176,3 +176,27 @@ pub fn open_macos_application_routing_settings() -> AsyncTask<MacosApplicationRo
         operation: Some(MacosApplicationRoutingOperation::OpenSettings),
     })
 }
+
+#[napi(object)]
+pub struct JsMacosApplicationRoutingSnapshot {
+    pub state: String,
+    pub needs_user_approval: bool,
+    pub message: Option<String>,
+    pub proxy_available: bool,
+}
+pub struct ReconcileRoutingTask { configuration: kokorobox_native::MacosApplicationRoutingConfiguration }
+#[napi]
+impl Task for ReconcileRoutingTask {
+    type Output = kokorobox_native::MacosApplicationRoutingSnapshot;
+    type JsValue = JsMacosApplicationRoutingSnapshot;
+    fn compute(&mut self) -> Result<Self::Output> {
+        kokorobox_native::reconcile_macos_application_routing(&self.configuration).map_err(map_err)
+    }
+    fn resolve(&mut self, _: Env, output: Self::Output) -> Result<Self::JsValue> {
+        Ok(JsMacosApplicationRoutingSnapshot { state: output.status.state.as_str().into(), needs_user_approval: output.status.needs_user_approval, message: output.status.message, proxy_available: output.proxy_available })
+    }
+}
+#[napi]
+pub fn reconcile_macos_application_routing(configuration: JsMacosApplicationRoutingConfiguration) -> Result<AsyncTask<ReconcileRoutingTask>> {
+    Ok(AsyncTask::new(ReconcileRoutingTask { configuration: configuration.try_into()? }))
+}

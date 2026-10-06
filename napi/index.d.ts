@@ -24,6 +24,7 @@ export interface UwpLoopbackApp {
 }
 
 export interface NativeCapabilities {
+  macosRoutingReconcile: boolean;
   coreProcessControl: boolean;
   applicationInspection: boolean;
   executableDiscovery: boolean;
@@ -435,3 +436,5 @@ export declare function getSystemDnsDiagnostics(): Promise<SystemDnsDiagnostics>
 export interface CoreProcessIdentity { pid: number; executable: string; started: string; }
 export function inspectCoreProcess(pid: number, executable: string): Promise<CoreProcessIdentity | null>;
 export function stopCoreProcess(identity: CoreProcessIdentity): Promise<boolean>;
+
+export function reconcileMacosApplicationRouting(configuration: MacosApplicationRoutingConfiguration): Promise<MacosApplicationRoutingStatus & { proxyAvailable: boolean }>;
