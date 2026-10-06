@@ -1,6 +1,8 @@
 #![deny(clippy::all)]
 
 mod application;
+mod core_process;
+pub use core_process::{CoreProcessIdentity, inspect_core_process, stop_core_process};
 mod executables;
 mod icons;
 mod linux_service_status;
@@ -148,6 +150,7 @@ pub struct NativeCapabilities {
     pub launch_at_login: bool,
     pub network_context: bool,
     pub network_monitor: bool,
+    pub core_process_control: bool,
     pub system_dns_diagnostics: bool,
     pub service_lifecycle: bool,
     pub managed_file_permissions: bool,
@@ -182,6 +185,11 @@ pub fn native_capabilities() -> NativeCapabilities {
             target_os = "linux"
         )),
         network_monitor: cfg!(any(
+            target_os = "windows",
+            target_os = "macos",
+            target_os = "linux"
+        )),
+        core_process_control: cfg!(any(
             target_os = "windows",
             target_os = "macos",
             target_os = "linux"

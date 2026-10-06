@@ -24,6 +24,7 @@ export interface UwpLoopbackApp {
 }
 
 export interface NativeCapabilities {
+  coreProcessControl: boolean;
   applicationInspection: boolean;
   executableDiscovery: boolean;
   windowsApplicationScan: boolean;
@@ -430,3 +431,7 @@ export interface SystemDnsDiagnostics {
 }
 /** Read-only system resolver probes and the current primary network DNS. */
 export declare function getSystemDnsDiagnostics(): Promise<SystemDnsDiagnostics>
+
+export interface CoreProcessIdentity { pid: number; executable: string; started: string; }
+export function inspectCoreProcess(pid: number, executable: string): Promise<CoreProcessIdentity | null>;
+export function stopCoreProcess(identity: CoreProcessIdentity): Promise<boolean>;

@@ -1,6 +1,7 @@
 #![deny(clippy::all)]
 
 mod application;
+mod core_process;
 mod error;
 mod executables;
 mod icons;

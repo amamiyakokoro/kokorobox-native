@@ -87,3 +87,14 @@ pub fn is_running_as_admin() -> Result<bool> {
     let token = open_current_process_token()?;
     Ok(token_elevation(&token)?.TokenIsElevated != 0)
 }
+
+/// Compare real account identity, including elevated tokens of the same user.
+pub(crate) fn process_owned_by_current_user(
+    process: windows::Win32::Foundation::HANDLE,
+) -> Result<bool> {
+    let mut token = Default::default();
+    unsafe { OpenProcessToken(process, TOKEN_QUERY, &mut token) }?;
+    let token = Handle(token);
+    let buffer = token_user_buffer(&token)?;
+    Ok(sid_string_from_token_user(token_user_from_buffer(&buffer))? == current_user_sid()?)
+}
