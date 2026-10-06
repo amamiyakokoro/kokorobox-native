@@ -72,7 +72,7 @@ pub fn validate_core_profile(options: &CoreValidationOptions) -> Result<CoreVali
     }
     run(command, Duration::from_secs(10))
 }
-fn run(mut command: Command, timeout: Duration) -> Result<CoreValidationResult> {
+pub(crate) fn run(mut command: Command, timeout: Duration) -> Result<CoreValidationResult> {
     command
         .stdin(Stdio::null())
         .stdout(Stdio::piped())

@@ -20,7 +20,9 @@ mod privileged_operations;
 mod privileges;
 mod rules;
 mod service_identity;
+mod service_process_status;
 mod service_status;
+pub use service_process_status::get_service_process_status;
 mod system_dns;
 mod system_proxy;
 pub use system_dns::{DNSQuery, SystemDNSDiagnostics, get_system_dns_diagnostics};
@@ -155,6 +157,7 @@ pub struct NativeCapabilities {
     pub network_monitor: bool,
     pub core_process_control: bool,
     pub core_profile_validation: bool,
+    pub service_process_status: bool,
     pub system_dns_diagnostics: bool,
     pub service_lifecycle: bool,
     pub managed_file_permissions: bool,
@@ -175,6 +178,11 @@ pub fn native_capabilities() -> NativeCapabilities {
     NativeCapabilities {
         application_inspection: true,
         core_profile_validation: true,
+        service_process_status: cfg!(any(
+            target_os = "windows",
+            target_os = "macos",
+            target_os = "linux"
+        )),
         executable_discovery: true,
         windows_application_scan: cfg!(target_os = "windows"),
         windows_account: cfg!(target_os = "windows"),

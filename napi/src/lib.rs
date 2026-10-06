@@ -13,6 +13,7 @@ mod privileged_operations;
 mod privileges;
 mod rules;
 mod service_identity;
+mod service_process_status;
 mod system_dns;
 mod system_proxy;
 mod terminal_proxy;

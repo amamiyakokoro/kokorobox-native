@@ -24,6 +24,7 @@ export interface UwpLoopbackApp {
 }
 
 export interface NativeCapabilities {
+ serviceProcessStatus: boolean;
  coreProfileValidation: boolean;
   macosRoutingReconcile: boolean;
   coreProcessControl: boolean;
@@ -443,3 +444,5 @@ export function reconcileMacosApplicationRouting(configuration: MacosApplication
 export interface CoreValidationOptions { executable: string; configPath: string; workDir: string; safePaths: string[]; }
 export interface CoreValidationResult { outcome: 'valid' | 'invalid' | 'timeout' | 'output-limit'; output: string; }
 export function validateCoreProfile(options: CoreValidationOptions): Promise<CoreValidationResult>;
+
+export function getServiceProcessStatus(executable: string): Promise<'running' | 'stopped' | 'paused' | 'not-installed' | 'unknown'>;

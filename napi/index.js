@@ -210,3 +210,5 @@ export const stopCoreProcess = diagnosticBinding.stopCoreProcess;
 export const reconcileMacosApplicationRouting = diagnosticBinding.reconcileMacosApplicationRouting;
 
 export const validateCoreProfile = diagnosticBinding.validateCoreProfile;
+
+export const getServiceProcessStatus = diagnosticBinding.getServiceProcessStatus;
