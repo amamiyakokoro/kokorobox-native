@@ -12,7 +12,7 @@ pub struct CoreProcessIdentity {
     pub started: String,
 }
 
-fn core_path(path: &str) -> Result<PathBuf> {
+pub(crate) fn core_path(path: &str) -> Result<PathBuf> {
     if !std::path::Path::new(path).is_absolute() {
         bail!("core executable path must be absolute");
     }

@@ -2,6 +2,7 @@
 
 mod application;
 mod core_process;
+mod core_validation;
 mod error;
 mod executables;
 mod icons;

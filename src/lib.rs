@@ -2,7 +2,9 @@
 
 mod application;
 mod core_process;
+mod core_validation;
 pub use core_process::{CoreProcessIdentity, inspect_core_process, stop_core_process};
+pub use core_validation::{CoreValidationOptions, CoreValidationResult, validate_core_profile};
 mod executables;
 mod icons;
 mod linux_service_status;
@@ -152,6 +154,7 @@ pub struct NativeCapabilities {
     pub network_context: bool,
     pub network_monitor: bool,
     pub core_process_control: bool,
+    pub core_profile_validation: bool,
     pub system_dns_diagnostics: bool,
     pub service_lifecycle: bool,
     pub managed_file_permissions: bool,
@@ -171,6 +174,7 @@ pub struct NativeCapabilities {
 pub fn native_capabilities() -> NativeCapabilities {
     NativeCapabilities {
         application_inspection: true,
+        core_profile_validation: true,
         executable_discovery: true,
         windows_application_scan: cfg!(target_os = "windows"),
         windows_account: cfg!(target_os = "windows"),
