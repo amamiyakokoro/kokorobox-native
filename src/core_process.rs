@@ -130,19 +130,28 @@ mod platform {
     }
 }
 
+#[cfg(any(target_os = "linux", test))]
+fn process_real_uid(status: &str) -> Result<u32> {
+    status
+        .lines()
+        .find_map(|line| line.strip_prefix("Uid:"))
+        .and_then(|value| value.split_whitespace().next())
+        .and_then(|value| value.parse().ok())
+        .context("missing real process UID")
+}
+
 #[cfg(target_os = "linux")]
 mod platform {
     use super::*;
     use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
-    use std::os::unix::fs::MetadataExt;
     pub fn inspect(pid: u32) -> Result<Option<(PathBuf, String)>> {
         let root = PathBuf::from(format!("/proc/{pid}"));
-        let metadata = match std::fs::metadata(&root) {
+        let status = match std::fs::read_to_string(root.join("status")) {
             Ok(v) => v,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
             Err(e) => return Err(e.into()),
         };
-        if metadata.uid() != unsafe { libc::getuid() } {
+        if process_real_uid(&status)? != unsafe { libc::getuid() } {
             return Ok(None);
         }
         let path = match std::fs::read_link(root.join("exe")) {
@@ -358,5 +367,13 @@ mod tests {
         let _ = child.wait();
         let _ = std::fs::remove_dir_all(root);
         result.unwrap();
+    }
+    #[test]
+    fn process_ownership_uses_real_uid_for_setuid_cores() {
+        assert_eq!(
+            process_real_uid("Name: mihomo\nUid:\t1000\t0\t0\t0\n").unwrap(),
+            1000
+        );
+        assert!(process_real_uid("Uid: invalid").is_err());
     }
 }
