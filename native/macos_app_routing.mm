@@ -596,6 +596,54 @@ static NSString *KBCurrentStatus(NSError **error) {
   return state;
 }
 
+// Called from a N-API worker. Never wait on the Electron main queue.
+static NSArray *KBRoutingLogs(BOOL clear, NSError **error) {
+  NETransparentProxyManager *manager = KBLoadManager(error);
+  if (!manager && error && *error) return nil;
+  if (!manager || !manager.enabled || manager.connection.status != NEVPNStatusConnected) return @[];
+  if (![manager.connection isKindOfClass:[NETunnelProviderSession class]]) {
+    if (error) *error = KBError(@"The transparent proxy provider is unavailable");
+    return nil;
+  }
+  NSData *message = [NSJSONSerialization dataWithJSONObject:@{
+    @"action": clear ? @"clearLogs" : @"getLogs"
+  } options:0 error:error];
+  if (!message) return nil;
+  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+  __block NSData *response = nil;
+  __block NSError *sendError = nil;
+  __block BOOL sent = NO;
+  NETunnelProviderSession *session = (NETunnelProviderSession *)manager.connection;
+  dispatch_async(dispatch_get_main_queue(), ^{
+    sent = [session sendProviderMessage:message returnError:&sendError
+                       responseHandler:^(NSData *data) {
+      response = data;
+      dispatch_semaphore_signal(semaphore);
+    }];
+    if (!sent || sendError) dispatch_semaphore_signal(semaphore);
+  });
+  if (!KBWait(semaphore, 5)) {
+    if (error) *error = KBError(@"Reading application-routing logs timed out");
+    return nil;
+  }
+  if (!sent || sendError) {
+    if (error) *error = sendError ?: KBError(@"Reading application-routing logs failed");
+    return nil;
+  }
+  // Older providers return nil for an empty batch. A nil clear reply is not an acknowledgement.
+  if (!response && !clear) return @[];
+  if (response.length > 512 * 1024) {
+    if (error) *error = KBError(@"Application-routing log response is too large");
+    return nil;
+  }
+  id decoded = response ? [NSJSONSerialization JSONObjectWithData:response options:0 error:error] : nil;
+  if (clear && [decoded isKindOfClass:[NSDictionary class]] &&
+      [decoded[@"status"] isEqualToString:@"ok"]) return @[];
+  if (!clear && [decoded isKindOfClass:[NSArray class]] && [decoded count] <= 100) return decoded;
+  if (error && !*error) *error = KBError(@"Unsupported application-routing log response");
+  return nil;
+}
+
 static NSDictionary *KBInvoke(NSDictionary *request, NSError **error) {
   if (![request isKindOfClass:[NSDictionary class]] ||
       [request[@"version"] integerValue] != KBProtocolVersion ||
@@ -607,6 +655,10 @@ static NSDictionary *KBInvoke(NSDictionary *request, NSError **error) {
   NSString *command = request[@"command"];
   NSString *state = nil;
   BOOL needsUserApproval = KBUserApprovalPending();
+  if ([command isEqualToString:@"get-logs"] || [command isEqualToString:@"clear-logs"]) {
+    NSArray *logs = KBRoutingLogs([command isEqualToString:@"clear-logs"], error);
+    return logs ? @{ @"version": @(KBProtocolVersion), @"ok": @YES, @"logs": logs } : nil;
+  }
   if ([command isEqualToString:@"apply"]) {
     NSDictionary *configuration = request[@"configuration"];
     BOOL activationNeedsUserApproval = NO;

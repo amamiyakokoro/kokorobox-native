@@ -83,3 +83,21 @@ NetworkManager/systemd-resolved and falls back to resolv.conf for inspection.
 Bootstrap repair is Desktop configuration policy: Desktop copies the observed
 system DNS addresses into `dns.default-nameserver` and restarts the core. Native
 does not expose an OS DNS mutation API for diagnostics.
+
+## macOS application routing logs
+
+`getMacosApplicationRoutingLogs(): Promise<MacosApplicationRoutingLog[]>` drains
+up to 100 activity/connection entries from the approved KokoroBox Network
+Extension via its provider-message channel. Records have `time`, `message` and
+`level`; connection messages contain protocol, application, destination, port and
+routing result. Older provider connection entries without timestamps return an
+empty `time` so the caller can use its receipt time.
+
+`clearMacosApplicationRoutingLogs(): Promise<void>` clears provider history after
+checking its acknowledgement. A stopped or absent session returns an empty batch
+and clearing it is a no-op. Other OS/provider failures reject. Calls run on N-API
+workers; the provider send runs on the main dispatch queue with a five-second
+reply timeout, following the bounded preferences load. Responses are checked for
+version, schema, count, size and invalid fields before crossing into JavaScript.
+The caller should serialize reads and clears and retain its own bounded history.
+These operations require macOS and do not activate an extension or change policy.

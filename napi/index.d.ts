@@ -446,3 +446,12 @@ export interface CoreValidationResult { outcome: 'valid' | 'invalid' | 'timeout'
 export function validateCoreProfile(options: CoreValidationOptions): Promise<CoreValidationResult>;
 
 export function getServiceProcessStatus(executable: string): Promise<'running' | 'stopped' | 'paused' | 'not-installed' | 'unknown'>;
+
+export interface MacosApplicationRoutingLog {
+  time: string;
+  message: string;
+  level: string;
+}
+/** Drains at most 100 entries from the Network Extension. */
+export function getMacosApplicationRoutingLogs(): Promise<MacosApplicationRoutingLog[]>;
+export function clearMacosApplicationRoutingLogs(): Promise<void>;

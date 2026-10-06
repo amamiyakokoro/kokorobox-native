@@ -212,3 +212,6 @@ export const reconcileMacosApplicationRouting = diagnosticBinding.reconcileMacos
 export const validateCoreProfile = diagnosticBinding.validateCoreProfile;
 
 export const getServiceProcessStatus = diagnosticBinding.getServiceProcessStatus;
+
+export const getMacosApplicationRoutingLogs = diagnosticBinding.getMacosApplicationRoutingLogs;
+export const clearMacosApplicationRoutingLogs = diagnosticBinding.clearMacosApplicationRoutingLogs;

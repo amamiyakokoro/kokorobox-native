@@ -112,6 +112,8 @@ enum WireCommand {
     Stop,
     Status,
     OpenSettings,
+    GetLogs,
+    ClearLogs,
 }
 
 #[derive(Serialize)]
@@ -337,6 +339,101 @@ pub fn open_macos_application_routing_settings() -> Result<MacosApplicationRouti
     invoke_typed(WireCommand::OpenSettings, None)
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MacosApplicationRoutingLog {
+    pub time: String,
+    pub message: String,
+    pub level: String,
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "type", rename_all = "lowercase")]
+enum WireLog {
+    Activity {
+        timestamp: String,
+        level: String,
+        message: String,
+    },
+    Connection {
+        #[serde(default)]
+        timestamp: String,
+        protocol: String,
+        process: String,
+        destination: String,
+        port: String,
+        proxy: String,
+    },
+}
+
+fn parse_logs(response: &str) -> Result<Vec<MacosApplicationRoutingLog>> {
+    #[derive(Deserialize)]
+    struct Response {
+        version: u8,
+        ok: bool,
+        logs: Vec<WireLog>,
+    }
+    if response.len() > 512 * 1024 {
+        return Err(anyhow!("Application-routing log response is too large"));
+    }
+    let response: Response = serde_json::from_str(response)
+        .map_err(|_| anyhow!("Unsupported application-routing log response"))?;
+    if response.version != PROTOCOL_VERSION || !response.ok || response.logs.len() > 100 {
+        return Err(anyhow!("Unsupported application-routing log response"));
+    }
+    let field = |value: String| -> Result<String> {
+        if value.len() > 4096 || value.chars().any(|c| c.is_control()) {
+            return Err(anyhow!("Invalid application-routing log field"));
+        }
+        Ok(value)
+    };
+    response
+        .logs
+        .into_iter()
+        .map(|entry| match entry {
+            WireLog::Activity {
+                timestamp,
+                level,
+                message,
+            } => Ok(MacosApplicationRoutingLog {
+                time: field(timestamp)?,
+                level: field(level)?,
+                message: field(message)?,
+            }),
+            WireLog::Connection {
+                timestamp,
+                protocol,
+                process,
+                destination,
+                port,
+                proxy,
+            } => {
+                let protocol = field(protocol)?;
+                let process = field(process)?;
+                let destination = field(destination)?;
+                let port = field(port)?;
+                let proxy = field(proxy)?;
+                Ok(MacosApplicationRoutingLog {
+                    time: field(timestamp)?,
+                    level: "INFO".into(),
+                    message: format!("{protocol} {process} → {destination}:{port} [{proxy}]"),
+                })
+            }
+        })
+        .collect()
+}
+
+pub fn get_macos_application_routing_logs() -> Result<Vec<MacosApplicationRoutingLog>> {
+    parse_logs(&invoke_raw(&request_json(WireCommand::GetLogs, None)?)?)
+}
+
+pub fn clear_macos_application_routing_logs() -> Result<()> {
+    let logs = parse_logs(&invoke_raw(&request_json(WireCommand::ClearLogs, None)?)?)?;
+    if !logs.is_empty() {
+        return Err(anyhow!("Invalid clear application-routing logs response"));
+    }
+    Ok(())
+}
+
 fn validate_request(request: &str) -> Result<()> {
     if request.is_empty()
         || request.len() > MAXIMUM_REQUEST_BYTES
@@ -507,5 +604,47 @@ mod tests {
             MacosApplicationRoutingState::Running,
             now + std::time::Duration::from_secs(15)
         ));
+    }
+}
+
+#[cfg(test)]
+mod log_tests {
+    use super::*;
+    #[test]
+    fn normalizes_connection_and_activity_logs() {
+        let logs = parse_logs(r#"{"version":1,"ok":true,"logs":[{"type":"connection","timestamp":"2026-10-06T01:00:00Z","protocol":"TCP","process":"curl","destination":"example.com","port":"443","proxy":"BLOCK"},{"type":"activity","timestamp":"2026-10-06T01:00:01Z","level":"ERROR","message":"handshake failed"}]}"#).unwrap();
+        assert_eq!(logs[0].message, "TCP curl → example.com:443 [BLOCK]");
+        assert_eq!(logs[0].time, "2026-10-06T01:00:00Z");
+        assert_eq!(logs[1].level, "ERROR");
+    }
+    #[test]
+    fn supports_empty_and_legacy_batches() {
+        assert!(
+            parse_logs(r#"{"version":1,"ok":true,"logs":[]}"#)
+                .unwrap()
+                .is_empty()
+        );
+        let logs = parse_logs(r#"{"version":1,"ok":true,"logs":[{"type":"connection","protocol":"UDP","process":"curl","destination":"1.1.1.1","port":"53","proxy":"SOCKS5"}]}"#).unwrap();
+        assert_eq!(logs[0].time, "");
+    }
+    #[test]
+    fn rejects_invalid_and_unbounded_batches() {
+        for response in [
+            r#"{"version":2,"ok":true,"logs":[]}"#,
+            r#"{"version":1,"ok":false,"logs":[]}"#,
+            r#"{"version":1,"ok":true,"logs":[{"type":"unknown"}]}"#,
+            r#"{"version":1,"ok":true,"logs":[{"type":"activity","timestamp":"now","level":"INFO","message":"line\nspoof"}]}"#,
+        ] {
+            assert!(parse_logs(response).is_err());
+        }
+        let entry =
+            serde_json::json!({"type":"activity","timestamp":"now","level":"INFO","message":"ok"});
+        assert!(
+            parse_logs(
+                &serde_json::json!({"version":1,"ok":true,"logs":vec![entry;101]}).to_string()
+            )
+            .is_err()
+        );
+        assert!(parse_logs(&" ".repeat(512 * 1024 + 1)).is_err());
     }
 }

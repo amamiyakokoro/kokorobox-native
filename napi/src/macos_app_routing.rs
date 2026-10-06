@@ -184,7 +184,9 @@ pub struct JsMacosApplicationRoutingSnapshot {
     pub message: Option<String>,
     pub proxy_available: bool,
 }
-pub struct ReconcileRoutingTask { configuration: kokorobox_native::MacosApplicationRoutingConfiguration }
+pub struct ReconcileRoutingTask {
+    configuration: kokorobox_native::MacosApplicationRoutingConfiguration,
+}
 #[napi]
 impl Task for ReconcileRoutingTask {
     type Output = kokorobox_native::MacosApplicationRoutingSnapshot;
@@ -193,10 +195,66 @@ impl Task for ReconcileRoutingTask {
         kokorobox_native::reconcile_macos_application_routing(&self.configuration).map_err(map_err)
     }
     fn resolve(&mut self, _: Env, output: Self::Output) -> Result<Self::JsValue> {
-        Ok(JsMacosApplicationRoutingSnapshot { state: output.status.state.as_str().into(), needs_user_approval: output.status.needs_user_approval, message: output.status.message, proxy_available: output.proxy_available })
+        Ok(JsMacosApplicationRoutingSnapshot {
+            state: output.status.state.as_str().into(),
+            needs_user_approval: output.status.needs_user_approval,
+            message: output.status.message,
+            proxy_available: output.proxy_available,
+        })
     }
 }
 #[napi]
-pub fn reconcile_macos_application_routing(configuration: JsMacosApplicationRoutingConfiguration) -> Result<AsyncTask<ReconcileRoutingTask>> {
-    Ok(AsyncTask::new(ReconcileRoutingTask { configuration: configuration.try_into()? }))
+pub fn reconcile_macos_application_routing(
+    configuration: JsMacosApplicationRoutingConfiguration,
+) -> Result<AsyncTask<ReconcileRoutingTask>> {
+    Ok(AsyncTask::new(ReconcileRoutingTask {
+        configuration: configuration.try_into()?,
+    }))
+}
+
+#[napi(object)]
+pub struct JsMacosApplicationRoutingLog {
+    pub time: String,
+    pub message: String,
+    pub level: String,
+}
+
+pub struct RoutingLogsTask;
+#[napi]
+impl Task for RoutingLogsTask {
+    type Output = Vec<kokorobox_native::MacosApplicationRoutingLog>;
+    type JsValue = Vec<JsMacosApplicationRoutingLog>;
+    fn compute(&mut self) -> Result<Self::Output> {
+        kokorobox_native::get_macos_application_routing_logs().map_err(map_err)
+    }
+    fn resolve(&mut self, _: Env, output: Self::Output) -> Result<Self::JsValue> {
+        Ok(output
+            .into_iter()
+            .map(|entry| JsMacosApplicationRoutingLog {
+                time: entry.time,
+                message: entry.message,
+                level: entry.level,
+            })
+            .collect())
+    }
+}
+#[napi]
+pub fn get_macos_application_routing_logs() -> AsyncTask<RoutingLogsTask> {
+    AsyncTask::new(RoutingLogsTask)
+}
+pub struct ClearRoutingLogsTask;
+#[napi]
+impl Task for ClearRoutingLogsTask {
+    type Output = ();
+    type JsValue = ();
+    fn compute(&mut self) -> Result<()> {
+        kokorobox_native::clear_macos_application_routing_logs().map_err(map_err)
+    }
+    fn resolve(&mut self, _: Env, _: ()) -> Result<()> {
+        Ok(())
+    }
+}
+#[napi]
+pub fn clear_macos_application_routing_logs() -> AsyncTask<ClearRoutingLogsTask> {
+    AsyncTask::new(ClearRoutingLogsTask)
 }

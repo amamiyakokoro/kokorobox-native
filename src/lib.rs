@@ -49,7 +49,8 @@ pub use macos_app_routing::{
     MacosApplicationRoutingAction, MacosApplicationRoutingConfiguration,
     MacosApplicationRoutingIdentifierKind, MacosApplicationRoutingProtocol,
     MacosApplicationRoutingRule, MacosApplicationRoutingSnapshot, MacosApplicationRoutingState,
-    MacosApplicationRoutingStatus, apply_macos_application_routing,
+    MacosApplicationRoutingStatus, MacosApplicationRoutingLog, apply_macos_application_routing,
+    get_macos_application_routing_logs, clear_macos_application_routing_logs,
     get_macos_application_routing_status, open_macos_application_routing_settings,
     reconcile_macos_application_routing, stop_macos_application_routing,
 };
