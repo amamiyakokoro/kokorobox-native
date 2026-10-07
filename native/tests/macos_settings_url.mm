@@ -12,7 +12,7 @@ static bool checkURL(NSInteger majorVersion, NSString *expected) {
 int main() {
   @autoreleasepool {
     NSString *legacy = @"x-apple.systempreferences:com.apple.preference.security?General";
-    NSString *extensions = @"x-apple.systempreferences:com.apple.LoginItems-Settings.extension?ExtensionItems";
+    NSString *extensions = @"x-apple.systempreferences:com.apple.ExtensionsPreferences?extensionPointIdentifier=com.apple.system_extension.network_extension.extension-point&bundleIdentifier=com.amamiyakokoro.app";
     for (NSInteger version : {13, 14}) {
       if (!checkURL(version, legacy)) return 1;
     }

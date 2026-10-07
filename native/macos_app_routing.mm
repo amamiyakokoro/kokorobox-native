@@ -56,14 +56,14 @@ static BOOL KBWait(dispatch_semaphore_t semaphore, NSTimeInterval seconds) {
 }
 
 static NSURL *KBSystemSettingsURLForMajorVersion(NSInteger majorVersion) {
-  // Network Extensions moved to Login Items & Extensions in macOS 15. The
-  // inner network-extension sheet has no stable public deep link.
+  // On macOS 15+, route to Network Extensions with the KokoroBox bundle hint.
+  // Older systems use the Security pane for extension approval.
   NSString *destination = @"x-apple.systempreferences:com.apple.preference.security?General";
   // Do not use @available in this Rust-linked N-API library. Clang emits a
   // compiler-runtime __isPlatformVersionAtLeast call which dynamic_lookup can
   // leave unresolved, crashing Electron when the main-queue block executes.
   if (majorVersion >= 15) {
-    destination = @"x-apple.systempreferences:com.apple.LoginItems-Settings.extension?ExtensionItems";
+    destination = @"x-apple.systempreferences:com.apple.ExtensionsPreferences?extensionPointIdentifier=com.apple.system_extension.network_extension.extension-point&bundleIdentifier=com.amamiyakokoro.app";
   }
   return [NSURL URLWithString:destination];
 }
