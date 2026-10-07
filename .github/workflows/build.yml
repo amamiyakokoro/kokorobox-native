@@ -145,6 +145,14 @@ jobs:
           exit 1
         working-directory: napi
 
+      - name: Check macOS routing Settings URL and native runtime symbols
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          for binary in napi/*.node; do
+            sh scripts/check-macos-routing.sh "$binary"
+          done
+
       - name: Build traffic presenter (macOS)
         if: runner.os == 'macOS'
         shell: bash

@@ -55,14 +55,22 @@ static BOOL KBWait(dispatch_semaphore_t semaphore, NSTimeInterval seconds) {
              dispatch_time(DISPATCH_TIME_NOW, (int64_t)(seconds * NSEC_PER_SEC))) == 0;
 }
 
-static NSURL *KBSystemSettingsURL(void) {
+static NSURL *KBSystemSettingsURLForMajorVersion(NSInteger majorVersion) {
   // Network Extensions moved to Login Items & Extensions in macOS 15. The
   // inner network-extension sheet has no stable public deep link.
   NSString *destination = @"x-apple.systempreferences:com.apple.preference.security?General";
-  if (@available(macOS 15.0, *)) {
+  // Do not use @available in this Rust-linked N-API library. Clang emits a
+  // compiler-runtime __isPlatformVersionAtLeast call which dynamic_lookup can
+  // leave unresolved, crashing Electron when the main-queue block executes.
+  if (majorVersion >= 15) {
     destination = @"x-apple.systempreferences:com.apple.LoginItems-Settings.extension?ExtensionItems";
   }
   return [NSURL URLWithString:destination];
+}
+
+static NSURL *KBSystemSettingsURL(void) {
+  return KBSystemSettingsURLForMajorVersion(
+      [NSProcessInfo processInfo].operatingSystemVersion.majorVersion);
 }
 
 static void KBOpenSystemSettingsAsync(void (^completion)(NSError *)) {

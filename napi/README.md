@@ -101,3 +101,13 @@ reply timeout, following the bounded preferences load. Responses are checked for
 version, schema, count, size and invalid fields before crossing into JavaScript.
 The caller should serialize reads and clears and retain its own bounded history.
 These operations require macOS and do not activate an extension or change policy.
+
+### macOS Settings navigation regression check
+
+After building a macOS `.node`, run `sh scripts/check-macos-routing.sh path/to/binary.node`.
+The check verifies Settings destinations for macOS 13/14 and 15+, then checks the
+actual Rust-linked library for unresolved Clang availability helpers. N-API uses
+`dynamic_lookup` for Node exports, so an accidentally unresolved availability
+helper can survive linking and crash the Electron main thread. Settings routing
+uses `NSProcessInfo.operatingSystemVersion` to avoid this compiler-runtime dependency.
+The check opens no apps and requests no System Extension activation or approval.
