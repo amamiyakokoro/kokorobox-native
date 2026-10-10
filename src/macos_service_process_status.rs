@@ -19,6 +19,7 @@ impl MacosServiceProcessStatus {
     }
 }
 
+#[cfg(any(target_os = "macos", test))]
 fn parse_launchctl_status(output: &str, success: bool) -> Option<MacosServiceProcessStatus> {
     if success {
         return Some(
