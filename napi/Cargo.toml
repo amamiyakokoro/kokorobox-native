@@ -10,8 +10,8 @@ repository = "https://github.com/amamiyakokoro/kokorobox-native"
 crate-type = ["cdylib"]
 
 [dependencies]
-napi = { version = "3", features = ["napi4"] }
-napi-derive = "3"
+napi = { version = "=3.14.0", features = ["napi4"] }
+napi-derive = "=3.6.9"
 kokorobox-native = { path = ".." }
 
 [build-dependencies]
