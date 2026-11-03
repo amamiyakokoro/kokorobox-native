@@ -78,7 +78,7 @@ windows = { version = "0.62", features = [
 ] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
-zbus = "5.19"
+zbus = "6.0"
 keyring = { version = "3", default-features = false, features = [
     "crypto-rust",
     "linux-native-sync-persistent",
