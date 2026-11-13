@@ -5,6 +5,13 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # zbus 6 removes the blocking API used by the Linux backend.
+      - dependency-name: "zbus"
+        versions: [">=6"]
+      # Upgrade the runtime and derive crate together.
+      - dependency-name: "napi"
+      - dependency-name: "napi-derive"
 
   - package-ecosystem: npm
     directory: /napi
