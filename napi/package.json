@@ -1,6 +1,6 @@
 {
   "name": "kokorobox-native",
-  "version": "0.16.9",
+  "version": "0.16.10",
   "description": "KokoroBox native bridge",
   "type": "module",
   "main": "index.js",
