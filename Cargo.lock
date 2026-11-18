@@ -1598,6 +1598,8 @@ dependencies = [
 name = "kokorobox-traffic-presenter"
 version = "0.16.11"
 dependencies = [
+ "objc2",
+ "objc2-app-kit",
  "serde",
  "serde_json",
  "tao",
