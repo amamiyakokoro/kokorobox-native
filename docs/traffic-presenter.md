@@ -29,7 +29,7 @@ The current platform presentation is:
 - Windows: a transparent, non-activating popup attached adjacent to the notification area. The
   popup is reattached after Explorer recreates the taskbar and falls back to a topmost overlay if
   the taskbar temporarily rejects attachment.
-- macOS: an `NSStatusItem`-backed menu-bar title.
+- macOS: a fixed-width `NSStatusItem` with upload and download stacked in two rows.
 - Linux: a StatusNotifierItem using the KSNI D-Bus backend.
 
 The process is single-instance on Windows and exits when Desktop closes its
